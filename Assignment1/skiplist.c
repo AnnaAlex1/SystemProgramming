@@ -7,7 +7,8 @@
 #include <time.h>
 
 
-int num_of_levels = 1;
+int levels_vac = 1;
+int levels_notvac = 1;
 int max_level = 4;  ///?????
 
 
@@ -181,7 +182,7 @@ int addVacSkipList(VacSkipList *list, struct VacSkipRecord* element){
     printf("\n");
 
     printf("VaccList: ADDING: %s\n", element->name);
-    //printf("Current height = %d\n", num_of_levels);
+    //printf("Current height = %d\n", levels_vac);
 
     if((*list) == NULL ){
         return -1;
@@ -281,15 +282,15 @@ int addVacSkipList(VacSkipList *list, struct VacSkipRecord* element){
 
                 height++;
 
-                //if heigth > num_of_levels, add head!!!
-                if (height > num_of_levels){
+                //if heigth > levels_vac, add head!!!
+                if (height > levels_vac){
                     new_head = malloc(sizeof(struct VacPtrNodes));
                     new_head->down = *list;
                     new_head->next = new_node;
                     new_head->elem = NULL;
                     new_node->next = NULL;
                     *list = new_head;
-                    num_of_levels++;
+                    levels_vac++;
 
                 } else {
 
@@ -341,11 +342,11 @@ int addVacSkipList(VacSkipList *list, struct VacSkipRecord* element){
 
 
 
-int removeVacSkipList(VacSkipList *list, struct VacSkipRecord* element){
+int removeVacSkipList(VacSkipList *list, char* id){
 
     printf("\n\n");
 
-    printf("Deleting element: %s\n", element->name);
+    printf("Deleting element: %s\n", id);
 
     if ( *list == NULL || (*list)->next == NULL){
         printf("List is empty. Cannot delete element.\n");
@@ -371,14 +372,14 @@ int removeVacSkipList(VacSkipList *list, struct VacSkipRecord* element){
         if ( prev->down != NULL){   //level > 0
 
             printf("Searching for the first element with greater value\n");
-            while( temp!= NULL && strcmp(temp->elem->name,element->name) < 0 ){
+            while( temp!= NULL && strcmp(temp->elem->name, id) < 0 ){
                 
                 prev = temp;
                 temp = temp->next;
                 printf("New Prev = %s, \n", prev->elem->name);
             }
 
-            if ( temp!= NULL && strcmp(temp->elem->name,element->name) == 0 ){
+            if ( temp!= NULL && strcmp(temp->elem->name, id) == 0 ){
                 printf("Found one!\n");
                 to_free = temp;
                 prev->next = temp->next;
@@ -394,7 +395,7 @@ int removeVacSkipList(VacSkipList *list, struct VacSkipRecord* element){
                 to_free = (*list);
                 (*list) = (*list)->down;
                 free(to_free);
-                num_of_levels--;
+                levels_vac--;
             }  
             
         } else {  // level = 0
@@ -402,18 +403,18 @@ int removeVacSkipList(VacSkipList *list, struct VacSkipRecord* element){
             printf("Lowest level.\n");
             
             //find element
-            while( temp!= NULL && strcmp(temp->elem->name,element->name) < 0 ){
+            while( temp!= NULL && strcmp(temp->elem->name, id) < 0 ){
                 prev = temp;
                 temp = temp->next;
             }
 
-            if ( temp!= NULL && strcmp(temp->elem->name,element->name) == 0 ){
+            if ( temp!= NULL && strcmp(temp->elem->name, id) == 0 ){
                 printf("Found the element!\n");
                 to_free = temp;
                 prev->next = temp->next;
                 free(to_free->elem->name);
                 free(to_free->elem->date);
-                //free(to_free->elem);
+                free(to_free->elem);
                 free(to_free);
                 return 1;
             }      
@@ -447,6 +448,19 @@ void printVacSkipList(VacSkipList list){
     }
 
 
+    /////////////////
+
+    while ( list->down != NULL){
+        list = list->down;
+    }
+
+    list = list->next;
+    while (list != NULL){
+        printf("%s   ", list->elem->name);
+        list = list->next;
+    }
+
+/*
     struct VacPtrNodes* temp;
 
 
@@ -463,7 +477,7 @@ void printVacSkipList(VacSkipList list){
         list = list->down;
     }
 
-
+*/
 
     
 }
@@ -480,6 +494,7 @@ void freeVacSkipList(VacSkipList *list){
     if ( (*list)->next == NULL){       //list is empty, just delete head
         free( (*list) );
         *list = NULL;
+        return;
     }
 
     struct VacPtrNodes* temp_head;
@@ -489,12 +504,13 @@ void freeVacSkipList(VacSkipList *list){
     while( *list != NULL ){
 
         while ( (*list)->next != NULL){
-            
             //temp = (*list)->next;
-            if (num_of_levels == 1){      //if on last level
+            if (levels_vac == 1){      //if on last level
+                printf("HELLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLOOOOOO---000066\n");
+
                 free((*list)->next->elem->name);
                 free((*list)->next->elem->date);
-                //free((*list)->next->elem);
+                free((*list)->next->elem);
 
             }
 
@@ -508,7 +524,7 @@ void freeVacSkipList(VacSkipList *list){
         temp_head = *list;
         (*list) = (*list)->down;
         free(temp_head);
-        num_of_levels--;
+        levels_vac--;
     }
 
 
@@ -563,7 +579,7 @@ int addNotVacSkipList(NotVacSkipList *list, struct NotVacSkipRecord* element){
     printf("\n");
 
     printf("NotVaccList: ADDING: %s\n", element->name);
-    //printf("Current height = %d\n", num_of_levels);
+    //printf("Current height = %d\n", levels_notvac);
 
     if((*list) == NULL ){
         return -1;
@@ -662,15 +678,15 @@ int addNotVacSkipList(NotVacSkipList *list, struct NotVacSkipRecord* element){
 
                 height++;
 
-                //if heigth > num_of_levels, add head!!!
-                if (height > num_of_levels){
+                //if heigth > levels_notvac, add head!!!
+                if (height > levels_notvac){
                     new_head = malloc(sizeof(struct NotVacPtrNodes));
                     new_head->down = *list;
                     new_head->next = new_node;
                     new_head->elem = NULL;
                     new_node->next = NULL;
                     *list = new_head;
-                    num_of_levels++;
+                    levels_notvac++;
 
                 } else {
 
@@ -722,11 +738,11 @@ int addNotVacSkipList(NotVacSkipList *list, struct NotVacSkipRecord* element){
 
 
 
-int removeNotVacSkipList(NotVacSkipList *list, struct NotVacSkipRecord* element){
+int removeNotVacSkipList(NotVacSkipList *list, char* id){
 
     printf("\n\n");
 
-    printf("Deleting element: %s\n", element->name);
+    printf("Deleting element: %s\n", id);
 
     if ( *list == NULL || (*list)->next == NULL){
         printf("List is empty. Cannot delete element.\n");
@@ -752,14 +768,14 @@ int removeNotVacSkipList(NotVacSkipList *list, struct NotVacSkipRecord* element)
         if ( prev->down != NULL){   //level > 0
 
             printf("Searching for the first element with greater value\n");
-            while( temp!= NULL && strcmp(temp->elem->name,element->name) < 0 ){
+            while( temp!= NULL && strcmp(temp->elem->name, id) < 0 ){
                 
                 prev = temp;
                 temp = temp->next;
                 printf("New Prev = %s, \n", prev->elem->name);
             }
 
-            if ( temp!= NULL && strcmp(temp->elem->name,element->name) == 0 ){
+            if ( temp!= NULL && strcmp(temp->elem->name, id) == 0 ){
                 printf("Found one!\n");
                 to_free = temp;
                 prev->next = temp->next;
@@ -775,7 +791,7 @@ int removeNotVacSkipList(NotVacSkipList *list, struct NotVacSkipRecord* element)
                 to_free = (*list);
                 (*list) = (*list)->down;
                 free(to_free);
-                num_of_levels--;
+                levels_notvac--;
             }  
             
         } else {  // level = 0
@@ -783,17 +799,17 @@ int removeNotVacSkipList(NotVacSkipList *list, struct NotVacSkipRecord* element)
             printf("Lowest level.\n");
             
             //find element
-            while( temp!= NULL && strcmp(temp->elem->name,element->name) < 0 ){
+            while( temp!= NULL && strcmp(temp->elem->name, id) < 0 ){
                 prev = temp;
                 temp = temp->next;
             }
 
-            if ( temp!= NULL && strcmp(temp->elem->name,element->name) == 0 ){
+            if ( temp!= NULL && strcmp(temp->elem->name, id) == 0 ){
                 printf("Found the element!\n");
                 to_free = temp;
                 prev->next = temp->next;
                 free(to_free->elem->name);
-                //free(to_free->elem);
+                free(to_free->elem);
                 free(to_free);
                 return 1;
             }      
@@ -829,8 +845,19 @@ void printNotVacSkipList(NotVacSkipList list){
 
     struct NotVacPtrNodes* temp;
 
+//////
+    while ( list->down != NULL){
+        list = list->down;
+    }
 
-    while( list != NULL){
+    list = list->next;
+    while (list != NULL){
+        printf("%s   ", list->elem->name);
+        list = list->next;
+    }
+
+
+    /*while( list != NULL){
 
         temp = list->next;
 
@@ -842,7 +869,7 @@ void printNotVacSkipList(NotVacSkipList list){
         printf("\n");
         list = list->down;
     }
-
+*/
 
 
     
@@ -860,6 +887,7 @@ void freeNotVacSkipList(NotVacSkipList *list){
     if ( (*list)->next == NULL){       //list is empty, just delete head
         free( (*list) );
         *list = NULL;
+        return;
     }
 
     struct NotVacPtrNodes* temp_head;
@@ -871,9 +899,10 @@ void freeNotVacSkipList(NotVacSkipList *list){
         while ( (*list)->next != NULL){
             
             //temp = (*list)->next;
-            if (num_of_levels == 1){      //if on last level
+            if (levels_notvac == 1){      //if on last level
+                printf("HELLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLOOOOOOOOOOOO\n");
                 free((*list)->next->elem->name);
-                //free((*list)->next->elem);
+                free((*list)->next->elem);
 
             }
 
@@ -887,7 +916,7 @@ void freeNotVacSkipList(NotVacSkipList *list){
         temp_head = *list;
         (*list) = (*list)->down;
         free(temp_head);
-        num_of_levels--;
+        levels_notvac--;
     }
 
 

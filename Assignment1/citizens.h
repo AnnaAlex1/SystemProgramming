@@ -33,7 +33,7 @@ typedef struct TablePos* Hashtable;
 
 Hashtable hashtable_create();
 struct Bucket* bucket_create();
-void hashtable_add(Hashtable ht, struct Citizen* cit);
+void hashtable_add(Hashtable ht, struct Citizen cit);
 int hashtable_find(Hashtable ht, char* citizenid);
 struct Citizen* hashtable_get(Hashtable ht, char* element);
 void hashtable_destroy(Hashtable ht);

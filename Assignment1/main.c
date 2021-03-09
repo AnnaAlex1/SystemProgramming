@@ -64,6 +64,7 @@ int main( int argc, char *agrv[]){
     hashtable_destroy(citizens);
     deletelist(&virus_list);
     free(citizens);
+    free(countries);
     citizens = NULL;
     virus_list = NULL;
 

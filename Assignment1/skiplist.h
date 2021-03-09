@@ -29,7 +29,7 @@ typedef struct VacPtrNodes* VacSkipList;
 
 
 int addVacSkipList(VacSkipList *list, struct VacSkipRecord* element);
-int removeVacSkipList(VacSkipList *list, struct VacSkipRecord* element);
+int removeVacSkipList(VacSkipList *list, char* id);
 int searchVacSkipList(VacSkipList list, char* id);
 char* getDate_VacSkipList(VacSkipList list, char* id);
 void printVacSkipList(VacSkipList list);
@@ -62,7 +62,7 @@ typedef struct NotVacPtrNodes* NotVacSkipList;
 
 
 int addNotVacSkipList(NotVacSkipList *list, struct NotVacSkipRecord* element);
-int removeNotVacSkipList(NotVacSkipList *list, struct NotVacSkipRecord* element);
+int removeNotVacSkipList(NotVacSkipList *list, char* id);
 int searchNotVacSkipList(NotVacSkipList list, char* id);
 void printNotVacSkipList(NotVacSkipList list);
 void freeNotVacSkipList(NotVacSkipList *list);

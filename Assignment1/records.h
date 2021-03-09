@@ -38,16 +38,11 @@ struct CitRecord{
 
 
 
-
-//μαλλον δομή "πολίτης" η οποία περιέχει ΙΔ, όνομα, επίθετο, χώρα, ηλικία
-//η πληροφορία "ιός" δείχνει σε ποιου ιού τη λίστα θα προστεθεί νέα εγγραφή
-//( πχ στη skip list "vaccinated_persons" της ίωσης covid, αν done = true  )
-//στις λίστες αυτές διατηρείται η πληροφορία citizenId
-//στη λίστα "vaccinated_persons" χρησιμοποιείται επίσης η ημερομηνία
-
 int read_file(char* filename, Hashtable ht, struct List** virus_list, CountryHash countries);
 
-bool check_done(bool done, char* id, char* virus, struct List *virus_list);
+void insert_record(Hashtable ht,  struct List** virus_list, CountryHash countries, struct Citizen citizen, char* virus, bool done, char* date, bool from_console);
+
+bool check_done(bool done, char* id, char* virus, struct List *virus_list, bool from_console);
 bool check_date(bool done, char* id, char* virus, char* date, struct List *virus_list);
 
 #endif

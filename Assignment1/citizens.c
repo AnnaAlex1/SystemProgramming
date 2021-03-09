@@ -90,24 +90,24 @@ struct Bucket* bucket_create(){
 
 
 
-void hashtable_add(Hashtable ht, struct Citizen* cit){
+void hashtable_add(Hashtable ht, struct Citizen cit){
 
     //printf("Citizen Hashtable: ADDING %s\n", cit->citizenID);
     
     struct Citizen* new_cit;
     new_cit = malloc(sizeof(struct Citizen));
-    new_cit->citizenID = malloc(sizeof(char) * (strlen(cit->citizenID)+1));
-    strcpy(new_cit->citizenID, cit->citizenID);
-    new_cit->firstname = malloc(sizeof(char) * (strlen(cit->firstname)+1));
-    strcpy(new_cit->firstname, cit->firstname);   
-    new_cit->lastname = malloc(sizeof(char) * (strlen(cit->lastname)+1));
-    strcpy(new_cit->lastname, cit->lastname);
-    new_cit->country = malloc(sizeof(char) * (strlen(cit->country)+1));
-    strcpy(new_cit->country, cit->country);
-    new_cit->age = cit->age;
+    new_cit->citizenID = malloc(sizeof(char) * (strlen(cit.citizenID)+1));
+    strcpy(new_cit->citizenID, cit.citizenID);
+    new_cit->firstname = malloc(sizeof(char) * (strlen(cit.firstname)+1));
+    strcpy(new_cit->firstname, cit.firstname);   
+    new_cit->lastname = malloc(sizeof(char) * (strlen(cit.lastname)+1));
+    strcpy(new_cit->lastname, cit.lastname);
+    new_cit->country = malloc(sizeof(char) * (strlen(cit.country)+1));
+    strcpy(new_cit->country, cit.country);
+    new_cit->age = cit.age;
     
 
-    int pos = hashfunction(cit->citizenID);
+    int pos = hashfunction(cit.citizenID);
 
     struct Bucket* bucket = ht[pos].bucket;
 

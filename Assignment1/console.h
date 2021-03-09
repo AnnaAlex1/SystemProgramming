@@ -9,5 +9,6 @@
 void console(struct List** VirusList, Hashtable citizens, CountryHash countries);
 
 int datecmp(char* date1, char* date2);
+char *get_cur_date();
 
 #endif

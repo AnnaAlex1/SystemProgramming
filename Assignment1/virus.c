@@ -69,7 +69,7 @@ int checkifinlist(struct List* virus_list, char* name){
         return -1;
     } 
 
-    return 0;
+    return 1;
 
 }
 

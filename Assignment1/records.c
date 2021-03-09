@@ -26,17 +26,12 @@ int read_file(char* filename, Hashtable ht, struct List** virus_list, CountryHas
 
     char record[LINE_LEN];
     struct Citizen citizen;
-    struct Citizen *fromHash;
-    struct Country *fromhash_coun;
+
 
     char* virus;
     bool done;
     char* date;
 
-    struct List* virlist_temp;
-
-    struct VacSkipRecord* vac_element = NULL;
-    struct NotVacSkipRecord* not_vac_elem = NULL;
 
 
     while( fgets(record, LINE_LEN, cit_file) != NULL){
@@ -68,72 +63,7 @@ int read_file(char* filename, Hashtable ht, struct List** virus_list, CountryHas
         
         
 
-
-        //checking for this id in the Citizens hashtable
-        fromHash = hashtable_get(ht, citizen.citizenID);
-        if ( fromHash != NULL ){    //citizen already in hashtable
-
-            if ( strcmp(fromHash->firstname, citizen.firstname) != 0 
-                || strcmp(fromHash->lastname, citizen.lastname) != 0 
-                || strcmp(fromHash->country, citizen.country) != 0 
-                || fromHash->age != citizen.age
-                || !check_done(done, citizen.citizenID, virus, *virus_list)
-                || !check_date(done, citizen.citizenID, virus, date, *virus_list ) 
-                ){
-
-                    printf("ERROR IN RECORD:   %s\n", citizen.citizenID);
-                    
-                    continue;
-
-            }
-
-            
-        } else {
-
-            //put citizen in hashtable
-            hashtable_add(ht, &citizen);
-            
-            //put country in hashtable
-            if ( ( fromhash_coun = hashtable_getCoun(countries, citizen.country)) == NULL ){   //if it doesn't exist
-                hashtable_addCoun(countries, citizen.country);
-            } else {    //increase 
-                fromhash_coun->population++;
-            }     
-        }  
-
-
-        //put virus in list
-        if ( checkifinlist(*virus_list, virus) == -1 ){
-            addinlist(virus_list, virus);
-        }
-
-        virlist_temp = *virus_list;
-        while ( virlist_temp != NULL){
-            
-            if ( strcmp(virlist_temp->name, virus) == 0){
-
-                if ( done ){
-                    insert_Bloom( *(virlist_temp->vacc_bloom), NUM_OF_HASHES, citizen.citizenID);
-                    vac_element = malloc(sizeof(struct VacSkipRecord));
-                    vac_element->name = malloc(sizeof(char) * (strlen(citizen.citizenID)+1));
-                    vac_element->date = malloc(sizeof(char) * (strlen(date)+1));
-                    strcpy(vac_element->name, citizen.citizenID);
-                    strcpy(vac_element->date, date);
-                    addVacSkipList( &(virlist_temp->vaccinated), vac_element);
-                } else {
-                    insert_Bloom( *(virlist_temp->not_vacc_bloom), NUM_OF_HASHES, citizen.citizenID);
-                    not_vac_elem = malloc(sizeof(struct NotVacSkipRecord));
-                    not_vac_elem->name = malloc(sizeof(char) * (strlen(citizen.citizenID)+1));
-                    strcpy(not_vac_elem->name, citizen.citizenID);
-                    addNotVacSkipList( &(virlist_temp->not_vacc), not_vac_elem);
-                }
-
-
-
-            }
-            virlist_temp = virlist_temp->next;
-        }
-
+        insert_record(ht, virus_list, countries ,citizen, virus, done, date, false);
         
         printf("\n\n");
 
@@ -150,7 +80,117 @@ int read_file(char* filename, Hashtable ht, struct List** virus_list, CountryHas
 
 
 
-bool check_done(bool done, char* id, char* virus, struct List *virus_list){
+void insert_record(Hashtable ht,  struct List** virus_list, CountryHash countries, struct Citizen citizen, char* virus, bool done, char* date, bool from_console){
+
+    struct Citizen *fromHash;
+    struct Country *fromhash_coun;
+
+    struct List* virlist_temp;
+
+    struct VacSkipRecord* vac_element = NULL;
+    struct NotVacSkipRecord* not_vac_elem = NULL;
+
+    printf("?????????????????????\n");
+    //if date is given but doesn't follow a "YES"
+    if (date != NULL && done == false){
+        printf("EDW GIA KAPOIO LOGO\n");
+
+        printf("ERROR IN RECORD:   %s\n", citizen.citizenID);
+        return;
+    }
+
+
+    //checking for this id in the Citizens hashtable
+    fromHash = hashtable_get(ht, citizen.citizenID);
+    if ( fromHash != NULL ){    //citizen already in hashtable
+
+
+        //check if infos match
+        if ( strcmp(fromHash->firstname, citizen.firstname) != 0 
+            || strcmp(fromHash->lastname, citizen.lastname) != 0 
+            || strcmp(fromHash->country, citizen.country) != 0 
+            || fromHash->age != citizen.age
+            || !check_done(done, citizen.citizenID, virus, *virus_list, from_console)
+            || !check_date(done, citizen.citizenID, virus, date, *virus_list ) 
+            ){
+
+                printf("ERROR IN RECORD:   %s\n", citizen.citizenID);
+                
+                return;
+
+        }
+        
+    } else {
+
+        //put citizen in hashtable
+        hashtable_add(ht, citizen);
+        
+        //put country in hashtable
+        if ( ( fromhash_coun = hashtable_getCoun(countries, citizen.country)) == NULL ){   //if it doesn't exist
+            hashtable_addCoun(countries, citizen.country);
+        } else {    //increase 
+            fromhash_coun->population++;
+        }     
+    }  
+
+
+    //put virus in list
+    if ( checkifinlist(*virus_list, virus) == -1 ){
+        addinlist(virus_list, virus);
+    }
+
+    virlist_temp = *virus_list;
+    while ( virlist_temp != NULL){
+        
+        if ( strcmp(virlist_temp->name, virus) == 0){
+
+            if ( done ){    //"YES"
+
+                insert_Bloom( *(virlist_temp->vacc_bloom), NUM_OF_HASHES, citizen.citizenID);
+                vac_element = malloc(sizeof(struct VacSkipRecord));
+                vac_element->name = malloc(sizeof(char) * (strlen(citizen.citizenID)+1));
+                vac_element->date = malloc(sizeof(char) * (strlen(date)+1));
+                strcpy(vac_element->name, citizen.citizenID);
+                strcpy(vac_element->date, date);
+                addVacSkipList( &(virlist_temp->vaccinated), vac_element);
+
+            } else {  //  "NO"
+
+                //check if citizen is in vaccinated list of virus
+                //already done!!!! in check_done
+
+
+                //check if citizen is in not_vaccinated list of virus
+                //already done!!!! in check_done
+
+                insert_Bloom( *(virlist_temp->not_vacc_bloom), NUM_OF_HASHES, citizen.citizenID);
+                not_vac_elem = malloc(sizeof(struct NotVacSkipRecord));
+                not_vac_elem->name = malloc(sizeof(char) * (strlen(citizen.citizenID)+1));
+                strcpy(not_vac_elem->name, citizen.citizenID);
+                addNotVacSkipList( &(virlist_temp->not_vacc), not_vac_elem);
+            }
+
+
+
+        }
+        virlist_temp = virlist_temp->next;
+    }
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+bool check_done(bool done, char* id, char* virus, struct List *virus_list, bool from_console){
 
 
     struct List* virus_temp = virus_list;
@@ -159,7 +199,8 @@ bool check_done(bool done, char* id, char* virus, struct List *virus_list){
 
         if ( strcmp(virus_temp->name, virus ) == 0){
 
-            //if there is a record in vaccinated list of this virus
+
+            //"NO" &&" there is a record in vaccinated list of this virus
             if ( !done && search_Bloom(*(virus_temp->vacc_bloom), NUM_OF_HASHES, id) ){
                 //search in list
                 if ( searchVacSkipList(virus_temp->vaccinated, id) ){
@@ -167,15 +208,54 @@ bool check_done(bool done, char* id, char* virus, struct List *virus_list){
                 }
             }
 
-            //if there is a record in not vaccinated list of this virus
+
+
+            // "YES" && there is a record in not vaccinated list of this virus
             if ( done && search_Bloom(*(virus_temp->not_vacc_bloom), NUM_OF_HASHES, id)){
                 //search in list
                 if ( searchNotVacSkipList(virus_temp->not_vacc, id) ){
-                    return false;
+                    
+                    //citizen is registered as not vaccinated
+                    if ( from_console ){    //inserting record from console
+                        removeNotVacSkipList(&(virus_temp->not_vacc), id);
+                        return true;
+
+                    } else {
+                        printf("ERROR IN RECORD:   %s\n", id);
+                        return false;
+
+                    }
+
                 }
             } 
 
 
+            //"NO" && there is already a record in not vaccinated list of this virus
+            if ( !done && search_Bloom( *(virus_temp->not_vacc_bloom), NUM_OF_HASHES, id) == 1 
+                && searchNotVacSkipList( virus_temp->not_vacc, id) == 1
+                ){
+
+                //citizen is registered as not vaccinated
+                printf("ALREADY IN RECORD:   %s\n", id);
+                return false;
+
+            }
+
+
+            char* ret_date;
+            
+            //"YES" && citizen is in vaccinated list of virus
+            if ( done && search_Bloom( *(virus_temp->vacc_bloom), NUM_OF_HASHES, id) == 1 
+                && (ret_date = getDate_VacSkipList( virus_temp->vaccinated, id)  ) != NULL
+                ){
+                    //citizen is registered as vaccinated
+                    if ( from_console ){
+                        printf("ERROR: CITIZEN ALREADY VACCINATED ON %s\n", ret_date);
+                    }
+
+                return false;  
+
+            }
 
             break;
         }
@@ -192,12 +272,6 @@ bool check_done(bool done, char* id, char* virus, struct List *virus_list){
 
 
 bool check_date(bool done, char* id, char* virus, char* date, struct List *virus_list){
-
-
-    //if date is given but doesn't follow a "YES"
-    if (date != NULL && done == false){
-        return false;
-    }
 
 
     //if there is a date and its different than the one in previous record

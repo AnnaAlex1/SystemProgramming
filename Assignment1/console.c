@@ -4,12 +4,14 @@
 #include "console.h"
 #include "virus.h"
 #include "citizens.h"
+#include "records.h"
 #include "countries.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <time.h> 
 
 
 void console(struct List** VirusList, Hashtable citizens, CountryHash countries){
@@ -162,8 +164,131 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
             
         } else if ( strcmp(arg, "/insertCitizenRecord") == 0){
             
+            //get arguments
+            struct Citizen cit;
+
+            cit.citizenID = strtok(NULL, " ");
+            cit.firstname = strtok(NULL, " ");
+            cit.lastname = strtok(NULL, " ");
+            cit.country = strtok(NULL, " ");
+            cit.age = atoi(strtok(NULL, " "));
+            
+            virusName = strtok(NULL, " ");
+            
+            bool done;
+            if ( strcmp(strtok(NULL, " "), "YES") == 0){
+                done = true;
+            } else {
+                done = false;
+            }
+            char* date = strtok(NULL, "\n");
+
+            insert_record(citizens, VirusList, countries, cit, virusName, done, date, true);
+
+
         } else if ( strcmp(arg, "/vaccinateNow") == 0){
             
+            //get arguments
+            char *citizenID = strtok(NULL, " ");
+            char *firstname = strtok(NULL, " ");
+            char *lastname = strtok(NULL, " ");
+            char *country = strtok(NULL, " ");
+            int age = atoi(strtok(NULL, " "));
+            virusName = strtok(NULL, "\n");
+
+            //if not all arguments were given
+            if ( citizenID == NULL || firstname == NULL || lastname == NULL 
+                || country == NULL || virusName == NULL){
+                    printf("Please give all info!\n");
+                    continue;
+                }
+
+
+            //check if info matches citizen in record
+            struct Citizen* from_hash = hashtable_get(citizens, citizenID);
+
+            if ( from_hash == NULL){    //check existence
+                printf("No such citizen in record!\n");
+                continue;
+            } else {    //check if infos match
+                if ( strcmp(from_hash->firstname, firstname) != 0 
+                    || strcmp(from_hash->lastname, lastname) != 0 
+                    || strcmp(from_hash->country, country) != 0 
+                    || from_hash->age != age
+                ){
+
+                    printf("Error in given info!\n"); 
+                    continue;
+
+                }
+            }
+
+            //check if virus exists
+            if ( checkifinlist(*VirusList, virusName ) == -1){
+                printf("No such virus in record!\n");
+                continue;
+            } else {
+                //get virus struct
+                virusNode = getelemfromlist(*VirusList, virusName);
+            }
+
+            char* ret_date;
+
+            //check if vaccinated
+            if ( search_Bloom(*(virusNode->vacc_bloom), NUM_OF_HASHES, citizenID) == 1 ){
+
+                    //search in list
+                    if ( ( ret_date = getDate_VacSkipList( virusNode->vaccinated, citizenID)) != NULL ){
+                        
+                        //vaccination found
+                        printf("ERROR: CITIZEN %s ALREADY VACCINATED ON %s\n", citizenID, ret_date);
+                        continue;
+                    }
+
+            }
+            
+            struct VacSkipRecord* vac_element;
+            char *cur_date = get_cur_date();
+
+            /*
+            printf("\nNotVaccinatedSkipList: BEFORE\n");    /////////////----------------
+            printNotVacSkipList(virusNode->not_vacc);
+
+            printf("\nVaccinatedSkipList: BEFORE\n");   /////////////--------------
+            printVacSkipList(virusNode->vaccinated);
+            */
+
+            //vaccination not found - add new record
+            insert_Bloom( *(virusNode->vacc_bloom), NUM_OF_HASHES, citizenID);
+            vac_element = malloc(sizeof(struct VacSkipRecord));
+            vac_element->name = malloc(sizeof(char) * (strlen(citizenID)+1));
+            vac_element->date = malloc(sizeof(char) * (strlen(cur_date)+1));
+            strcpy(vac_element->name, citizenID);
+            strcpy(vac_element->date, cur_date);
+            addVacSkipList( &(virusNode->vaccinated), vac_element);
+            
+            free(cur_date);
+
+            //check if in not_vaccinated list
+            if ( search_Bloom(*(virusNode->not_vacc_bloom), NUM_OF_HASHES, citizenID) == 1 ){
+
+                    //search in list
+                    if ( searchNotVacSkipList( virusNode->not_vacc, citizenID) == 1 ){
+                        
+                        //record found - remove
+                        removeNotVacSkipList(&(virusNode->not_vacc), citizenID);
+                    }
+
+            }
+
+            printf("\nVaccinatedSkipList: AFTER\n");    /////////////----------------
+            printVacSkipList(virusNode->vaccinated);
+
+            printf("\nNotVaccinatedSkipList: AFTER\n");    /////////////----------------
+            printNotVacSkipList(virusNode->not_vacc);
+
+
+
         } else if ( strcmp(arg, "/list-nonVaccinated-Persons") == 0){
 
             virusName = strtok(NULL, "\n");
@@ -209,7 +334,8 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
         }
 
 
-    }
+
+    }   //end of while
 
 
     
@@ -268,4 +394,25 @@ int datecmp(char* date1, char* date2){
 
     return 0;
 
+}
+
+
+char *get_cur_date(){
+
+    time_t cur_time;
+
+    time(&cur_time);
+
+
+    struct tm *arith = localtime(&cur_time);
+    char *cur_date = malloc( sizeof(char) * 11); //format: dd-mm-yyyy +\0
+ 
+    char buffer[40];
+    
+    snprintf(buffer, 40, "%d-%d-%d", arith->tm_mday, arith->tm_mon+1, arith->tm_year + 1900);
+    strcpy( cur_date, buffer);
+
+    printf("DATEEEE: %s\n", cur_date);
+
+    return cur_date;
 }
