@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "records.h": "c",
+        "cstdlib": "c"
+    }
+}
