@@ -45,4 +45,7 @@ void insert_record(Hashtable ht,  struct List** virus_list, CountryHash countrie
 bool check_done(bool done, char* id, char* virus, struct List *virus_list, bool from_console);
 bool check_date(bool done, char* id, char* virus, char* date, struct List *virus_list);
 
+bool is_date(char* string);
+
+
 #endif

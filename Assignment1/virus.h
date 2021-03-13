@@ -9,11 +9,9 @@ struct List{
     char* name;
     struct BloomFilter* vacc_bloom;
     VacSkipList vaccinated;
-    int vacc_num;
     struct BloomFilter* not_vacc_bloom;
     NotVacSkipList not_vacc;
     struct List* next;
-    int not_vac_num;
 };
 
 

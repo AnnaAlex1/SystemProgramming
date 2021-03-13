@@ -21,7 +21,6 @@ void addinlist(struct List** virus_list, char* name){
     newnode->vaccinated->down = NULL;
     newnode->vaccinated->next = NULL;
     newnode->vaccinated->elem = NULL;
-    newnode->vacc_num = 0;
 
     newnode->not_vacc_bloom = init_Bloom();
 
@@ -30,7 +29,6 @@ void addinlist(struct List** virus_list, char* name){
     newnode->not_vacc->down = NULL;
     newnode->not_vacc->next = NULL;
     newnode->not_vacc->elem = NULL;
-    newnode->not_vac_num = 0;
 
     newnode->next = NULL;
 

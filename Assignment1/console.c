@@ -114,11 +114,23 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
 
                 printf("VirusName: %s,   Date1: %s,   Date2: %s\n", arg1, arg2, arg3);
 
-                printf("NOT IMPLEMENTED\n");
+                if ( !is_date(arg2) || !is_date(arg3) ){
+                    printf("Wrong Dates!\n");
+                }
+                
+                populationStatus_all(*VirusList, citizens, countries, arg1, arg2, arg3);
 
 
             } else {    //country was given
-                printf("Country: %s,  VirusName: %s,   Date1: %s,   Date2: %s\n", arg1, arg2, arg3, arg4);
+
+                if ( !is_date(arg3) || !is_date(arg4) ){
+                    printf("Wrong Dates!\n");
+                }
+
+                populationStatus_one(*VirusList, citizens, countries, arg1, arg2, arg3, arg4);
+
+
+                /*printf("Country: %s,  VirusName: %s,   Date1: %s,   Date2: %s\n", arg1, arg2, arg3, arg4);
             
                 //get virus struct
                 virusNode = getelemfromlist(*VirusList, arg2);
@@ -156,12 +168,148 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
                 //print results
                 printf("%s %d %f%c\n", arg1, num_of_vacc, (float)num_of_vacc*100.0/(float)(countryy->population), '%' );
 
-            
+                */  
             }
 
             
         } else if ( strcmp(arg, "/popStatusByAge") == 0){
+
+            char *arg1 = strtok(NULL, " ");
+            char *arg2 = strtok(NULL, " ");
+            char *arg3 = strtok(NULL, " ");
+            char *arg4 = strtok(NULL, "\n");
+
+            if ( arg1 == NULL || arg2 == NULL || arg3 == NULL){
+                printf("Incorrect Input!\n");
+            }
+
+            if ( arg4 == NULL ){ //case: country was not given
+
+                printf("VirusName: %s,   Date1: %s,   Date2: %s\n", arg1, arg2, arg3);
+
+                if ( !is_date(arg2) || !is_date(arg3) ){
+                    printf("Wrong Dates!\n");
+                }
+
+                popStatusByAge_all(*VirusList, citizens, countries, arg1, arg2, arg3);
+
+
+
+            } else {    //country was given
+
+                if ( !is_date(arg3) || !is_date(arg4) ){
+                    printf("Wrong Dates!\n");
+                }    
+
+                popStatusByAge_one(*VirusList, citizens, countries, arg1, arg2, arg3, arg4);
+                /*
+                
+                printf("Country: %s,  VirusName: %s,   Date1: %s,   Date2: %s\n", arg1, arg2, arg3, arg4);
             
+                //get virus struct
+                virusNode = getelemfromlist(*VirusList, arg2);
+
+                if ( virusNode == NULL ) {printf("Error: no such virus\n"); continue; }
+
+                VacSkipList vac_temp;
+                char* citID_temp;
+                struct Citizen *cit_temp;
+                
+                int vacc_0to19 = 0, total_0to19 = 0;
+                int vacc_20to39 = 0, total_20to39 = 0;
+                int vacc_40to59 = 0, total_40to59 = 0;
+                int vacc_60plus = 0, total_60plus = 0;
+
+
+
+
+                vac_temp = virusNode->vaccinated;
+
+                while ( vac_temp->down != NULL){    //reach bottom
+                    vac_temp = vac_temp->down;
+                }
+
+                vac_temp = vac_temp->next;
+                while ( vac_temp != NULL){
+
+                    citID_temp = vac_temp->elem->name;  //get citizen id
+                    cit_temp = hashtable_get(citizens, citID_temp); //get citizen
+
+                    //if citizen is from 'country' (arg1)
+                    if ( strcmp(cit_temp->country, arg1) == 0 ){
+
+
+                        if ( cit_temp->age >= 0 && cit_temp->age < 20){
+
+                            total_0to19++;
+
+                            if ( datecmp(arg3, vac_temp->elem->date) >= 0 
+                                && datecmp( vac_temp->elem->date, arg4 ) >= 0){
+                                
+                                vacc_0to19++;
+
+                            }
+
+                        }  else if ( cit_temp->age >= 20 && cit_temp->age < 40){
+                            
+                            total_20to39++;
+                            
+                            if ( datecmp(arg3, vac_temp->elem->date) >= 0 
+                                && datecmp( vac_temp->elem->date, arg4 ) >= 0){
+                                
+                                vacc_20to39++;
+                                
+                            }
+
+                        } else if ( cit_temp->age >= 40 && cit_temp->age < 60){
+                            
+                            total_40to59++;
+
+                            if ( datecmp(arg3, vac_temp->elem->date) >= 0 
+                                && datecmp( vac_temp->elem->date, arg4 ) >= 0){
+                                
+                                vacc_40to59++;
+                                
+                            }
+
+                        } else {
+
+                            total_60plus++;
+
+                            if ( datecmp(arg3, vac_temp->elem->date) >= 0 
+                                && datecmp( vac_temp->elem->date, arg4 ) >= 0){
+                                
+                                vacc_60plus++;
+                                
+                            }
+
+                        }
+
+
+
+
+                    }
+                    vac_temp = vac_temp->next;
+                }
+
+                struct Country* countryy = hashtable_getCoun(countries, arg1);
+
+                //print results
+                printf("%s\n", arg1);
+                printf("0-19 %d %f%c\n", vacc_0to19, (float)vacc_0to19*100.0/(float)(total_0to19), '%' );
+                printf("20-39 %d %f%c\n", vacc_20to39, (float)vacc_0to19*100.0/(float)(total_20to39), '%' );
+                printf("40-59 %d %f%c\n", vacc_40to59, (float)vacc_0to19*100.0/(float)(total_40to59), '%' );
+                printf("60+ %d %f%c\n", vacc_60plus, (float)vacc_0to19*100.0/(float)(total_60plus), '%' );
+
+                */
+            }
+
+                
+
+
+
+
+
         } else if ( strcmp(arg, "/insertCitizenRecord") == 0){
             
             //get arguments
@@ -184,6 +332,11 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
             char* date = strtok(NULL, "\n");
 
             insert_record(citizens, VirusList, countries, cit, virusName, done, date, true);
+
+
+
+
+
 
 
         } else if ( strcmp(arg, "/vaccinateNow") == 0){
@@ -289,6 +442,10 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
 
 
 
+
+
+
+
         } else if ( strcmp(arg, "/list-nonVaccinated-Persons") == 0){
 
             virusName = strtok(NULL, "\n");
@@ -340,6 +497,451 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
 
     
 }
+
+
+
+
+
+
+void populationStatus_all(struct List *VirusList, Hashtable citizens, CountryHash countries, char* virusname, char* date1, char* date2){
+
+
+    if (countries == NULL || citizens == NULL || VirusList == NULL){
+        printf("Empty!\n");
+        return;
+    }
+
+    //get virus struct
+    struct List* virusNode;
+    virusNode = getelemfromlist(VirusList, virusname);
+
+    if ( virusNode == NULL ) {printf("Error: no such virus\n"); return; }
+
+
+
+
+
+    VacSkipList vac_temp;
+    char* citID_temp;
+    struct Citizen *cit_temp;
+    int num_of_vacc = 0;
+   
+    
+    //for every country
+    struct BucketCoun* co_temp;
+
+    for (int i = 0; i < TABLE_SIZE; i++)
+    {   
+        co_temp =countries[i].bucket;
+
+        while ( co_temp != NULL){
+
+            for (int j = 0; j < BUC_SIZE; j++){
+                
+                if (co_temp->element[j].name != NULL){
+
+
+
+                    num_of_vacc = 0;
+                    vac_temp = virusNode->vaccinated;
+
+                    while ( vac_temp->down != NULL){    //reach bottom
+                        vac_temp = vac_temp->down;
+                    }
+
+                    vac_temp = vac_temp->next;
+                    while ( vac_temp != NULL){
+
+                        citID_temp = vac_temp->elem->name;  //get citizen id
+                        cit_temp = hashtable_get(citizens, citID_temp); //get citizen
+
+                        //if citizen is from 'country' (co_temp->element->name)
+                        if ( strcmp(cit_temp->country, co_temp->element->name) == 0 ){
+                            if ( datecmp(date1, vac_temp->elem->date) >= 0 && datecmp( vac_temp->elem->date, date2 ) >= 0){
+                                num_of_vacc++;
+                            }
+                        }
+                        vac_temp = vac_temp->next;
+                    }
+
+                    //print results
+                    printf("%s %d %f%c\n", co_temp->element->name, num_of_vacc, (float)num_of_vacc*100.0/(float)(co_temp->element->population), '%' );
+
+
+                } 
+
+            }
+            
+            
+            co_temp = co_temp->next_buc;
+
+        
+        }
+
+    } 
+
+
+
+
+
+
+
+            
+}
+
+
+
+
+
+
+
+void populationStatus_one(struct List *VirusList, Hashtable citizens, CountryHash countries, char* country, char* virusname, char* date1, char* date2){
+
+    printf("Country: %s,  VirusName: %s,   Date1: %s,   Date2: %s\n", country, virusname, date1, date2);
+
+    //get virus struct
+    struct List* virusNode;
+    virusNode = getelemfromlist(VirusList, virusname);
+
+    if ( virusNode == NULL ) {printf("Error: no such virus\n"); return; }
+
+    VacSkipList vac_temp;
+    char* citID_temp;
+    struct Citizen *cit_temp;
+    int num_of_vacc = 0;
+
+    vac_temp = virusNode->vaccinated;
+
+    while ( vac_temp->down != NULL){    //reach bottom
+        vac_temp = vac_temp->down;
+    }
+
+    vac_temp = vac_temp->next;
+    while ( vac_temp != NULL){
+
+        citID_temp = vac_temp->elem->name;  //get citizen id
+        cit_temp = hashtable_get(citizens, citID_temp); //get citizen
+
+        //if citizen is from this country
+        if ( strcmp(cit_temp->country, country) == 0 ){
+            if ( datecmp(date1, vac_temp->elem->date) >= 0 && datecmp( vac_temp->elem->date, date2 ) >= 0){
+                num_of_vacc++;
+            }
+        }
+        vac_temp = vac_temp->next;
+    }
+
+    struct Country* countryy = hashtable_getCoun(countries, country);
+
+    //print results
+    printf("%s %d %f%c\n", country, num_of_vacc, (float)num_of_vacc*100.0/(float)(countryy->population), '%' );
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void popStatusByAge_all(struct List *VirusList, Hashtable citizens, CountryHash countries, char* virusname, char* date1, char* date2){
+
+
+    if (countries == NULL || citizens == NULL || VirusList == NULL){
+        printf("Empty!\n");
+        return;
+    }
+
+    //get virus struct
+    struct List* virusNode;
+    virusNode = getelemfromlist(VirusList, virusname);
+
+    if ( virusNode == NULL ) {printf("Error: no such virus\n"); return; }
+
+
+
+    VacSkipList vac_temp;
+    char* citID_temp;
+    struct Citizen *cit_temp;
+    
+    int vacc_0to19 = 0, total_0to19 = 0;
+    int vacc_20to39 = 0, total_20to39 = 0;
+    int vacc_40to59 = 0, total_40to59 = 0;
+    int vacc_60plus = 0, total_60plus = 0;
+
+   
+    
+    //for every country
+    struct BucketCoun* co_temp;
+
+    for (int i = 0; i < TABLE_SIZE; i++)
+    {   
+        co_temp =countries[i].bucket;
+
+        while ( co_temp != NULL){
+
+            for (int j = 0; j < BUC_SIZE; j++){
+                
+                if (co_temp->element[j].name != NULL){
+
+                    
+
+                    vacc_0to19 = 0; total_0to19 = 0;
+                    vacc_20to39 = 0; total_20to39 = 0;
+                    vacc_40to59 = 0; total_40to59 = 0;
+                    vacc_60plus = 0; total_60plus = 0;
+
+                    vac_temp = virusNode->vaccinated;
+
+
+                    while ( vac_temp->down != NULL){    //reach bottom
+                        vac_temp = vac_temp->down;
+                    }
+
+                    vac_temp = vac_temp->next;
+
+                    while ( vac_temp != NULL){      //for every record in vaccinated list
+
+                        citID_temp = vac_temp->elem->name;  //get citizen id
+                        cit_temp = hashtable_get(citizens, citID_temp); //get citizen
+
+                        //if citizen is from this country
+                        if ( strcmp(cit_temp->country, co_temp->element->name) == 0 ){
+
+
+                            if ( cit_temp->age >= 0 && cit_temp->age < 20){ //0-19
+
+                                total_0to19++;
+
+                                if ( datecmp(date1, vac_temp->elem->date) >= 0 
+                                    && datecmp( vac_temp->elem->date, date2 ) >= 0){ 
+                                    
+                                    vacc_0to19++;
+
+                                }
+
+                            }  else if ( cit_temp->age >= 20 && cit_temp->age < 40){ //20-39
+                                
+                                total_20to39++;
+                                
+                                if ( datecmp(date1, vac_temp->elem->date) >= 0 
+                                    && datecmp( vac_temp->elem->date, date2 ) >= 0){
+                                    
+                                    vacc_20to39++;
+                                    
+                                }
+
+                            } else if ( cit_temp->age >= 40 && cit_temp->age < 60){ //40-59
+                                
+                                total_40to59++;
+
+                                if ( datecmp(date1, vac_temp->elem->date) >= 0 
+                                    && datecmp( vac_temp->elem->date, date2 ) >= 0){
+                                    
+                                    vacc_40to59++;
+                                    
+                                }
+
+                            } else {                                                // 60+
+
+                                total_60plus++;
+
+                                if ( datecmp(date1, vac_temp->elem->date) >= 0 
+                                    && datecmp( vac_temp->elem->date, date2 ) >= 0){
+                                    
+                                    vacc_60plus++;
+                                    
+                                }
+
+                            }
+
+
+
+
+                        }
+
+                        vac_temp = vac_temp->next;
+                    }
+
+
+                    //print results
+                    printf("%s\n", co_temp->element->name);
+                    printf("0-19 %d %f%c\n", vacc_0to19, (float)vacc_0to19*100.0/(float)(total_0to19), '%' );
+                    printf("20-39 %d %f%c\n", vacc_20to39, (float)vacc_0to19*100.0/(float)(total_20to39), '%' );
+                    printf("40-59 %d %f%c\n", vacc_40to59, (float)vacc_0to19*100.0/(float)(total_40to59), '%' );
+                    printf("60+ %d %f%c\n", vacc_60plus, (float)vacc_0to19*100.0/(float)(total_60plus), '%' );
+
+
+                } 
+
+            }
+            
+            
+            co_temp = co_temp->next_buc;
+
+        
+        }
+
+    } 
+
+
+
+
+
+            
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void popStatusByAge_one(struct List *VirusList, Hashtable citizens, CountryHash countries, char* country, char* virusname, char* date1, char* date2){
+
+
+    //get virus struct
+    struct List* virusNode;
+
+    printf("Country: %s,  VirusName: %s,   Date1: %s,   Date2: %s\n", country, virusname, date1, date2);
+
+    //get virus struct
+    virusNode = getelemfromlist(VirusList, virusname);
+
+    if ( virusNode == NULL ){ printf("Error: no such virus\n"); return; }
+
+    VacSkipList vac_temp;
+    char* citID_temp;
+    struct Citizen *cit_temp;
+    
+    int vacc_0to19 = 0, total_0to19 = 0;
+    int vacc_20to39 = 0, total_20to39 = 0;
+    int vacc_40to59 = 0, total_40to59 = 0;
+    int vacc_60plus = 0, total_60plus = 0;
+
+
+
+
+    vac_temp = virusNode->vaccinated;
+
+    while ( vac_temp->down != NULL){    //reach bottom
+        vac_temp = vac_temp->down;
+    }
+
+    vac_temp = vac_temp->next;
+    while ( vac_temp != NULL){
+
+        citID_temp = vac_temp->elem->name;  //get citizen id
+        cit_temp = hashtable_get(citizens, citID_temp); //get citizen
+
+        //if citizen is from this country
+        if ( strcmp(cit_temp->country, country) == 0 ){
+
+
+            if ( cit_temp->age >= 0 && cit_temp->age < 20){
+
+                total_0to19++;
+
+                if ( datecmp(date1, vac_temp->elem->date) >= 0 
+                    && datecmp( vac_temp->elem->date, date2 ) >= 0){
+                    
+                    vacc_0to19++;
+
+                }
+
+            }  else if ( cit_temp->age >= 20 && cit_temp->age < 40){
+                
+                total_20to39++;
+                
+                if ( datecmp(date1, vac_temp->elem->date) >= 0 
+                    && datecmp( vac_temp->elem->date, date2 ) >= 0){
+                    
+                    vacc_20to39++;
+                    
+                }
+
+            } else if ( cit_temp->age >= 40 && cit_temp->age < 60){
+                
+                total_40to59++;
+
+                if ( datecmp(date1, vac_temp->elem->date) >= 0 
+                    && datecmp( vac_temp->elem->date, date2 ) >= 0){
+                    
+                    vacc_40to59++;
+                    
+                }
+
+            } else {
+
+                total_60plus++;
+
+                if ( datecmp(date1, vac_temp->elem->date) >= 0 
+                    && datecmp( vac_temp->elem->date, date2 ) >= 0){
+                    
+                    vacc_60plus++;
+                    
+                }
+
+            }
+
+
+
+
+        }
+        vac_temp = vac_temp->next;
+    }
+
+
+    //print results
+    printf("%s\n", country);
+    printf("0-19 %d %f%c\n", vacc_0to19, (float)vacc_0to19*100.0/(float)(total_0to19), '%' );
+    printf("20-39 %d %f%c\n", vacc_20to39, (float)vacc_0to19*100.0/(float)(total_20to39), '%' );
+    printf("40-59 %d %f%c\n", vacc_40to59, (float)vacc_0to19*100.0/(float)(total_40to59), '%' );
+    printf("60+ %d %f%c\n", vacc_60plus, (float)vacc_0to19*100.0/(float)(total_60plus), '%' );
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 int datecmp(char* date1, char* date2){
