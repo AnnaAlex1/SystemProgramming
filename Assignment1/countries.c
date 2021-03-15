@@ -132,7 +132,7 @@ void hashtable_addCoun(CountryHash ht, char* coun_name){
         }
     }
 
-
+    free(new_coun);
 
 
 }

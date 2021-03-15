@@ -327,29 +327,23 @@ bool is_date(char* string){
         printf("Pointer points to NULL\n");
     }
 
-    printf("day: %s\n", day);
-    printf("month: %s\n", month);
-    printf("year: %s\n", year);
-
 
     int day_num = atoi(day);
     int month_num = atoi(month);
     int year_num = atoi(year);
 
+    /*
     printf("day: %d\n", day_num);
     printf("month: %d\n", month_num);
     printf("year: %d\n", year_num);
-
+    */
 
     if ( day_num>=1 && day_num <= 31 
         && month_num >=1 && month_num <=12 
         && year_num >= 1900 && year_num <= 2100){
-        printf("String after: %s\n", string);   
         free(temp); 
         return 1;
     }
-
-    printf("String after: %s\n", string);
 
     free(temp);
     return 0;

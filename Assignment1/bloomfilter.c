@@ -6,7 +6,7 @@
 #include <math.h>
 #include <stdio.h>
 
-
+int size_in_bits;
 
 /*
 int main(void){
@@ -40,10 +40,11 @@ struct BloomFilter* init_Bloom(){
     struct BloomFilter* bf;
     bf = malloc(sizeof(struct BloomFilter));
 
-    bf->num_of_bits = SIZE_IN_BITS;
-    bf->num_of_pos = (SIZE_IN_BITS/8) / sizeof(int) + 1;       //100kb / sizeof(int) -> table size
+    printf("Size in bits: %d\n", size_in_bits);
+    bf->num_of_bits = size_in_bits;
+    bf->num_of_pos = (size_in_bits/8) / sizeof(int) + 1;       //100kb / sizeof(int) -> table size
     bf->array = malloc( (bf->num_of_pos)*sizeof(int) );
-    //bf->array = malloc( (SIZE_IN_BITS/8) / sizeof(int) + 1);
+    //bf->array = malloc( (size_in_bits/8) / sizeof(int) + 1);
 
     for (int i = 0; i < bf->num_of_pos; i++)
     {
@@ -66,7 +67,7 @@ void insert_Bloom(struct BloomFilter bf, int K, char* element){
 
     for (int i = 0; i < K; i++)
     {
-        pos =  hash_i( (unsigned char*)element, i) % SIZE_IN_BITS;
+        pos =  hash_i( (unsigned char*)element, i) % size_in_bits;
         //printf("Hash value: %ld\n", pos);
         int_num = (float)pos/(8*(float)sizeof(int));
         //printf("Int: %ld\n", int_num);
@@ -98,7 +99,7 @@ int search_Bloom(struct BloomFilter bf, int K, char* element){
 
     for (int i = 0; i < K; i++)
     {
-        pos =  hash_i( (unsigned char*)element, i) % SIZE_IN_BITS;
+        pos =  hash_i( (unsigned char*)element, i) % size_in_bits;
         //printf("Hash value: %ld\n", pos);
         int_num = (float)pos/(8*(float)sizeof(int));
         //printf("Int: %ld\n", int_num);

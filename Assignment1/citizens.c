@@ -143,7 +143,7 @@ void hashtable_add(Hashtable ht, struct Citizen cit){
         }
     }
 
-
+    free(new_cit);
 
 
 }

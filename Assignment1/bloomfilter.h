@@ -2,8 +2,8 @@
 #define __BLOOM__
 
 //#define SIZE_IN_BITS 800000           //bits
-#define SIZE_IN_BITS 80           //bits
 #define NUM_OF_HASHES 16
+
 
 
 struct BloomFilter{

@@ -12,9 +12,48 @@
 #include "countries.h"
 
 
-int main( int argc, char *agrv[]){
+extern int size_in_bits;
 
-    char filename[] = "citizenRecordsFile.txt"; //must be given in argv
+
+
+int main( int argc, char *argv[]){
+
+    if ( argc != 5 ){
+        printf("Wrong number of arguments!\n");
+        return -1;
+    }
+
+    if ( (strcmp(argv[1], "-c") != 0  && strcmp(argv[3], "-c") != 0)
+        || (strcmp(argv[1], "-b") != 0  && strcmp(argv[3], "-b") != 0) 
+        ){
+                printf("Arguments: %s %s %s %s\n", argv[1], argv[2], argv[3], argv[4]);
+
+            printf("Wrong Input!\n");
+            return -1;
+    }
+
+
+
+    printf("Arguments: %s %s %s %s\n", argv[1], argv[2], argv[3], argv[4]);
+
+    //char filename[] = "citizenRecordsFile.txt"; //must be given in argv
+
+    char *filename;
+
+    if ( strcmp(argv[1], "-c") == 0 ){
+
+        filename = malloc( sizeof(char) * (strlen(argv[2]) + 1) );
+        strcpy(filename,argv[2]);
+        size_in_bits = atoi(argv[4]);
+
+    } else {
+        
+        filename = malloc( sizeof(char) * (strlen(argv[4]) + 1) );
+        strcpy(filename,argv[4]);
+        size_in_bits = atoi(argv[2]);
+
+    }
+
 
     //List of viruses
     struct List* virus_list = NULL;
@@ -28,21 +67,14 @@ int main( int argc, char *agrv[]){
     countries = hashtable_createCoun();
 
 
-    //List of countries???
 
 
-
-    //GENERATE FILE
-
-
-
-
-
-
-    //READ FILE
+    //READ FILE 
     if ( read_file(filename, citizens, &virus_list, countries) == 0 ){
         printf("Successful reading of file!\n");
     }
+
+
 
     //PRINT STRUCTURES
     printf("\n\nPRINT STRUCTURES:\n");
@@ -67,6 +99,7 @@ int main( int argc, char *agrv[]){
     free(countries);
     citizens = NULL;
     virus_list = NULL;
+    free(filename);
 
 
     return 0;
