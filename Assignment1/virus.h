@@ -9,8 +9,10 @@ struct List{
     char* name;
     struct BloomFilter* vacc_bloom;
     VacSkipList vaccinated;
+    int levels_vac;                 //number of levels in vaccinated skip list
     struct BloomFilter* not_vacc_bloom;
     NotVacSkipList not_vacc;
+    int levels_notvac;              //number of levels in not_vaccinated skip list
     struct List* next;
 };
 

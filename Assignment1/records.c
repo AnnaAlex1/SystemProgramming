@@ -152,7 +152,7 @@ void insert_record(Hashtable ht,  struct List** virus_list, CountryHash countrie
                 vac_element->date = malloc(sizeof(char) * (strlen(date)+1));
                 strcpy(vac_element->name, citizen.citizenID);
                 strcpy(vac_element->date, date);
-                addVacSkipList( &(virlist_temp->vaccinated), vac_element);
+                addVacSkipList( &(virlist_temp->vaccinated), vac_element, &(virlist_temp->levels_vac));
 
             } else {  //  "NO"
 
@@ -167,7 +167,7 @@ void insert_record(Hashtable ht,  struct List** virus_list, CountryHash countrie
                 not_vac_elem = malloc(sizeof(struct NotVacSkipRecord));
                 not_vac_elem->name = malloc(sizeof(char) * (strlen(citizen.citizenID)+1));
                 strcpy(not_vac_elem->name, citizen.citizenID);
-                addNotVacSkipList( &(virlist_temp->not_vacc), not_vac_elem);
+                addNotVacSkipList( &(virlist_temp->not_vacc), not_vac_elem,  &(virlist_temp->levels_notvac));
             }
 
 
@@ -217,7 +217,7 @@ bool check_done(bool done, char* id, char* virus, struct List *virus_list, bool 
                     
                     //citizen is registered as not vaccinated
                     if ( from_console ){    //inserting record from console
-                        removeNotVacSkipList(&(virus_temp->not_vacc), id);
+                        removeNotVacSkipList(&(virus_temp->not_vacc), id, &(virus_temp->levels_notvac));
                         return true;
 
                     } else {

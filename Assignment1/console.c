@@ -284,7 +284,7 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
             vac_element->date = malloc(sizeof(char) * (strlen(cur_date)+1));
             strcpy(vac_element->name, citizenID);
             strcpy(vac_element->date, cur_date);
-            addVacSkipList( &(virusNode->vaccinated), vac_element);
+            addVacSkipList( &(virusNode->vaccinated), vac_element, &(virusNode->levels_vac));
             
             free(cur_date);
 
@@ -295,7 +295,7 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
                     if ( searchNotVacSkipList( virusNode->not_vacc, citizenID) == 1 ){
                         
                         //record found - remove
-                        removeNotVacSkipList(&(virusNode->not_vacc), citizenID);
+                        removeNotVacSkipList(&(virusNode->not_vacc), citizenID, &(virusNode->levels_notvac));
                     }
 
             }

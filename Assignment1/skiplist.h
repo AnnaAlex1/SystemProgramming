@@ -2,7 +2,7 @@
 #define __SKIP__
 
 
-#define MAXLVL 3 //log_p/2(N) //N πληθυσμός της γης????
+#define MAXLVL 32 //log_p/2(N) //N πληθυσμός της γης????
 
 
 //FOR VACCINTATED SKIPLIST
@@ -28,12 +28,12 @@ struct VacPath{
 typedef struct VacPtrNodes* VacSkipList;
 
 
-int addVacSkipList(VacSkipList *list, struct VacSkipRecord* element);
-int removeVacSkipList(VacSkipList *list, char* id);
+int addVacSkipList(VacSkipList *list, struct VacSkipRecord* element, int *num_of_levels);
+int removeVacSkipList(VacSkipList *list, char* id, int *num_of_levels);
 int searchVacSkipList(VacSkipList list, char* id);
 char* getDate_VacSkipList(VacSkipList list, char* id);
 void printVacSkipList(VacSkipList list);
-void freeVacSkipList(VacSkipList *list);
+void freeVacSkipList(VacSkipList *list, int *num_of_levels);
 
 
 
@@ -61,11 +61,11 @@ struct NotVacPath{
 typedef struct NotVacPtrNodes* NotVacSkipList;
 
 
-int addNotVacSkipList(NotVacSkipList *list, struct NotVacSkipRecord* element);
-int removeNotVacSkipList(NotVacSkipList *list, char* id);
+int addNotVacSkipList(NotVacSkipList *list, struct NotVacSkipRecord* element, int *num_of_levels);
+int removeNotVacSkipList(NotVacSkipList *list, char* id, int *num_of_levels);
 int searchNotVacSkipList(NotVacSkipList list, char* id);
 void printNotVacSkipList(NotVacSkipList list);
-void freeNotVacSkipList(NotVacSkipList *list);
+void freeNotVacSkipList(NotVacSkipList *list, int *num_of_levels);
 
 
 

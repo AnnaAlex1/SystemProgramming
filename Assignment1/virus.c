@@ -21,6 +21,7 @@ void addinlist(struct List** virus_list, char* name){
     newnode->vaccinated->down = NULL;
     newnode->vaccinated->next = NULL;
     newnode->vaccinated->elem = NULL;
+    newnode->levels_vac=1;
 
     newnode->not_vacc_bloom = init_Bloom();
 
@@ -29,6 +30,7 @@ void addinlist(struct List** virus_list, char* name){
     newnode->not_vacc->down = NULL;
     newnode->not_vacc->next = NULL;
     newnode->not_vacc->elem = NULL;
+    newnode->levels_notvac=1;
 
     newnode->next = NULL;
 
@@ -126,8 +128,8 @@ int deletelist(struct List** virus_list){
         free(to_free->name);
         destroy_Bloom(to_free->not_vacc_bloom);
         destroy_Bloom(to_free->vacc_bloom);
-        freeVacSkipList(&(to_free->vaccinated));
-        freeNotVacSkipList(&(to_free->not_vacc));
+        freeVacSkipList(&(to_free->vaccinated), &(to_free->levels_vac));
+        freeNotVacSkipList(&(to_free->not_vacc), &(to_free->levels_notvac));
         free(to_free);
     }
 
