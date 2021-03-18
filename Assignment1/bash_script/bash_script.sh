@@ -56,27 +56,20 @@ countries=(`cat "$countriesFile"`)
 done '
 
 
-
-#dates
-day_range=30
-month_range=12
-year_low=1900
-year_high=2100
-age_range=120
-name_range=10
-id_range=9999
+#########################   FUNCTIONS TO USE
 
 
+function create_citizen() {
 
-#3.CREATE INPUT FILE
-
-counter=0
-while [ $counter -lt $numLines ]
-do
     #choose citizenID
-    let "id = $RANDOM % $id_range + 1"
+    if [ $duplicatesAllowed == 0 ]
+    then
+        id="${ids_table[$counter]}"
+    else
+        let "id = $RANDOM % $id_range + 1"
+    fi
+    
     #echo "CitizenID length: " $id
-
 
 
 
@@ -117,6 +110,17 @@ do
     #echo $country
 
 
+    new_citizen="$id $first_n $last_n $country $age"
+    #echo "$new_citizen"
+
+
+
+}
+
+
+
+function create_rest() {
+
 
     #choose virus
     #echo "Size of array of viruses: " "${#viruses[@]}" 
@@ -135,8 +139,10 @@ do
     fi
 
     #echo $vac
+    let "give_date = $RANDOM % 10"      #probability for providing a date 
 
-    if [ $vac == "YES" ]
+    if ([ $vac == "YES" ] && [ $give_date -ge 1 ]) || ([ $vac == "NO" ] && [ $give_date -lt 1 ])     
+    # probability of 90% for YES, probability of 10% for NO
     then
         
         #calculate date
@@ -154,13 +160,103 @@ do
 
     #echo "counter: $counter"
 
-    full="$id $first_n $last_n $country $age $virus $vac $date"
+    vir_vacc="$virus $vac $date"
+    #echo "$vir_vacc"
+
+
+}
+
+########################################################3
+
+
+
+
+
+
+
+#dates
+day_range=30
+month_range=12
+year_low=1900
+year_high=2100
+age_range=120
+name_range=10
+id_range=9999
+
+ids_table=()
+#filling the table with numbers from 0 to 9999
+if [ $duplicatesAllowed == 0 ]  #case: duplicates not allowed
+then
+    counter=0
+    while [ $counter -le $id_range ]     # 9999 is the maximum number for ID
+    do
+        ids_table[${#ids_table[@]}]=$counter
+        counter=$(( counter+1 ))
+
+    done
+fi
+
+#sort table
+ids_table=($(shuf -e "${ids_table[@]}"))
+#echo "${ids_table[@]}"
+
+
+#3.CREATE INPUT FILE
+
+my_citizens=()
+counter=0
+while [ $counter -lt $numLines ]
+do
+
+
+    if [ $duplicatesAllowed == 1 ]   #CASE: DUPLICATES ALLOWED
+    then
+
+        let "dupl_prob = $RANDOM % 10"
+
+        if [ $dupl_prob -ge 1 ]         # create a new citizen with probability of 90%
+        then
+            echo "Case: Duplicates allowed, but this is a new Citizen"
+            create_citizen
+            create_rest
+
+            full="$new_citizen $vir_vacc"
+
+            my_citizens[${#my_citizens[@]}]=$new_citizen
+            
+
+        else                            # choose an already existing citizen with probability of 10%
+            echo "Case: Duplicates allowed and choosing an already existing citizen"
+
+            let "array_pos = $RANDOM % ${#my_citizens[@]}"
+            #echo "$array_pos"
+
+            create_rest
+
+            full="${my_citizens[$array_pos]} $vir_vacc"
+            #echo "${#my_citizens[@]}"
+        fi
+
+
+    else                            #CASE: NO DUPLICATES ALLOWED
+
+        if [ $counter -gt 9999 ]
+        then break
+        fi
+
+        create_citizen $counter
+        create_rest
+        full="$new_citizen $vir_vacc"
+
+    fi
 
     echo $full >> citizenRecordFile.txt
-    echo ''; echo ''
 
     counter=$(( counter+1 ))
+
 done
 
+
+#echo "${my_citizens[@]}"
 
 
