@@ -1,5 +1,12 @@
 #! /bin/bash
 
+
+file="citizenRecordFile.txt"
+
+if [ -f "$file" ] ; then
+    rm "$file"
+fi
+
 #echo $0 $1 $2 $3 $4 ' ( virusesFile countriesFile numLines duplicatesAllowed  )'
 
 virusesFile=$1
@@ -56,7 +63,7 @@ countries=(`cat "$countriesFile"`)
 done '
 
 
-#########################   FUNCTIONS TO USE
+#########################   FUNCTIONS TO BE USED
 
 
 function create_citizen() {
@@ -194,11 +201,14 @@ then
         counter=$(( counter+1 ))
 
     done
+
+    #sort table
+    ids_table=($(shuf -e "${ids_table[@]}"))
+    echo "${ids_table[@]}"
+
 fi
 
-#sort table
-ids_table=($(shuf -e "${ids_table[@]}"))
-#echo "${ids_table[@]}"
+
 
 
 #3.CREATE INPUT FILE
@@ -216,7 +226,7 @@ do
 
         if [ $dupl_prob -ge 1 ]         # create a new citizen with probability of 90%
         then
-            echo "Case: Duplicates allowed, but this is a new Citizen"
+            #echo "Case: Duplicates allowed, but this is a new Citizen"
             create_citizen
             create_rest
 
@@ -226,7 +236,7 @@ do
             
 
         else                            # choose an already existing citizen with probability of 10%
-            echo "Case: Duplicates allowed and choosing an already existing citizen"
+            #echo "Case: Duplicates allowed and choosing an already existing citizen"
 
             let "array_pos = $RANDOM % ${#my_citizens[@]}"
             #echo "$array_pos"
