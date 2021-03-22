@@ -1,7 +1,7 @@
 #! /bin/bash
 
 
-file="citizenRecordFile.txt"
+file="citizenRecordsFile.txt"
 
 if [ -f "$file" ] ; then
     rm "$file"
@@ -14,10 +14,10 @@ countriesFile=$2
 numLines=$3
 duplicatesAllowed=$4
 
-echo $virusesFile
-echo $countriesFile
-echo $numLines
-echo $duplicatesAllowed
+: 'echo $virusesFile        #print arguments
+echo "$countriesFile"
+echo "$numLines"
+echo "$duplicatesAllowed"'
 
 
 #1.CHECK INPUT
@@ -47,9 +47,9 @@ fi
 
 #2.READ FILES
 
-echo " "
 #read viruses file
 viruses=(`cat "$virusesFile"`)
+#mapfile -t viruses <$virusesFile
 
 : 'for vir in ${viruses[@]}; do
     echo "$vir"
@@ -57,13 +57,17 @@ done'
 
 #read countries file
 countries=(`cat "$countriesFile"`)
-
+#mapfile -t countries <$countriesFile
 : 'for coun in ${countries[@]}; do
     echo "$coun"
 done '
 
 
 #########################   FUNCTIONS TO BE USED
+
+
+
+table="abcdefghijklmnopqrstuvwxyz"
 
 
 function create_citizen() {
@@ -84,20 +88,20 @@ function create_citizen() {
     let "fn_length = $RANDOM % $name_range + 3"
     #echo "firstname length: " $fn_length
 
-    first_n=$(tr -cd a-z </dev/urandom | head -c $fn_length)
+    first_n=$(shuf -zer -n$fn_length {a..z} | tr -d '\0')
+
     first_n=${first_n^}
-    #echo $first_n
+    #echo "$first_n"
 
 
 
 
     #choose lastname
     let "ln_length = $RANDOM % $name_range + 3"
-    #echo "lastname length: " $ln_length
+    last_n=$(shuf -zer -n$ln_length {a..z} | tr -d '\0')
 
-    last_n=$(tr -cd a-z </dev/urandom | head -c $ln_length)
     last_n=${last_n^}
-    #echo $last_n
+    #echo "$last_n"
     
 
 
@@ -109,12 +113,10 @@ function create_citizen() {
 
 
     #choose country
-    #echo "Size of array of countries: " "${#countries[@]}" 
-
     let "pos = $RANDOM % ${#countries[@]}"
-    #echo $pos
+    #echo "$pos"
     country=${countries[$pos]}
-    #echo $country
+    #echo "$country"
 
 
     new_citizen="$id $first_n $last_n $country $age"
@@ -132,9 +134,9 @@ function create_rest() {
     #choose virus
     #echo "Size of array of viruses: " "${#viruses[@]}" 
     let "pos = $RANDOM % ${#viruses[@]}"
-    #echo $pos
+    #echo "$pos"
     virus=${viruses[$pos]}
-    #echo $virus
+    #echo "$virus"
 
     #decide "YES" or "NO"
     let "ran = $RANDOM % 2"
@@ -145,7 +147,7 @@ function create_rest() {
         vac="YES"
     fi
 
-    #echo $vac
+    #echo "$vac"
     let "give_date = $RANDOM % 10"      #probability for providing a date 
 
     if ([ $vac == "YES" ] && [ $give_date -ge 1 ]) || ([ $vac == "NO" ] && [ $give_date -lt 1 ])     
@@ -157,7 +159,7 @@ function create_rest() {
         let "month = $RANDOM % $month_range + 1"
         let "year = $RANDOM % ($year_high - $year_low) + $year_low"
         date=$day-$month-$year
-        #echo $date
+        #echo "$date"
 
     else
         date=""
@@ -194,17 +196,17 @@ ids_table=()
 #filling the table with numbers from 0 to 9999
 if [ $duplicatesAllowed == 0 ]  #case: duplicates not allowed
 then
-    counter=0
+    declare -i counter=0
     while [ $counter -le $id_range ]     # 9999 is the maximum number for ID
     do
         ids_table[${#ids_table[@]}]=$counter
-        counter=$(( counter+1 ))
+        counter+=1
 
     done
 
     #sort table
     ids_table=($(shuf -e "${ids_table[@]}"))
-    echo "${ids_table[@]}"
+    #echo "${ids_table[@]}"
 
 fi
 
@@ -214,7 +216,8 @@ fi
 #3.CREATE INPUT FILE
 
 my_citizens=()
-counter=0
+declare -i counter=0
+
 while [ $counter -lt $numLines ]
 do
 
@@ -224,7 +227,7 @@ do
 
         let "dupl_prob = $RANDOM % 10"
 
-        if [ $dupl_prob -ge 1 ]         # create a new citizen with probability of 90%
+        if [ $dupl_prob -ge 1 ] || [ $counter -eq 0 ]         # create a new citizen with probability of 90%
         then
             #echo "Case: Duplicates allowed, but this is a new Citizen"
             create_citizen
@@ -260,9 +263,9 @@ do
 
     fi
 
-    echo $full >> citizenRecordFile.txt
+    echo $full >> citizenRecordsFile.txt
 
-    counter=$(( counter+1 ))
+    counter+=1
 
 done
 
