@@ -36,22 +36,37 @@ int read_file(char* filename, Hashtable ht, struct List** virus_list, CountryHas
 
     while( fgets(record, LINE_LEN, cit_file) != NULL){
 
+        //printf("Record: %s\n", record);
 
         citizen.citizenID = strtok(record, " ");
         citizen.firstname = strtok(NULL, " ");
         citizen.lastname = strtok(NULL, " ");
         citizen.country = strtok(NULL, " ");
-        citizen.age = atoi(strtok(NULL, " "));
+        char *age_str = strtok(NULL, " ");
         virus = strtok(NULL, " ");
-        if ( strcmp(strtok(NULL, " "), "YES") == 0){
+        char *done_str = strtok(NULL, "\n");    //handling case date is missing
+        done_str = strtok(done_str, " ");
+        date = strtok(NULL, "\n");
+
+
+        if ( citizen.citizenID == NULL || citizen.firstname == NULL
+            || citizen.lastname == NULL || citizen.country == NULL
+            || age_str == NULL || virus == NULL || done_str == NULL ){
+                printf("ERROR IN RECORD\n");
+                continue;
+
+            }
+
+
+        citizen.age = atoi(age_str);
+        if ( strcmp(done_str, "YES") == 0){
             done = true;
         } else {
             done = false;
         }
 
-        date = strtok(NULL, "\n");
 
-        
+
         printf("id: %s\n", citizen.citizenID);
         printf("name: %s\n", citizen.firstname);
         printf("surname: %s\n", citizen.lastname);
@@ -60,9 +75,8 @@ int read_file(char* filename, Hashtable ht, struct List** virus_list, CountryHas
         printf("virus: %s\n", virus);
         printf("done: %d\n", done);
         printf("date: %s\n", date);
-        
-        
 
+        
         insert_record(ht, virus_list, countries ,citizen, virus, done, date, false);
         
         printf("\n\n");
@@ -90,11 +104,15 @@ void insert_record(Hashtable ht,  struct List** virus_list, CountryHash countrie
     struct VacSkipRecord* vac_element = NULL;
     struct NotVacSkipRecord* not_vac_elem = NULL;
 
-    printf("?????????????????????\n");
     //if date is given but doesn't follow a "YES"
     if (date != NULL && done == false){
-        printf("EDW GIA KAPOIO LOGO\n");
+        printf("ERROR IN RECORD:   %s\n", citizen.citizenID);
+        return;
+    }
 
+    printf("Id: %s date: %s done: %d\n", citizen.citizenID, date, done);
+    //if date is not given and follows a "YES"
+    if (date == NULL && done == true){
         printf("ERROR IN RECORD:   %s\n", citizen.citizenID);
         return;
     }
@@ -156,13 +174,6 @@ void insert_record(Hashtable ht,  struct List** virus_list, CountryHash countrie
 
             } else {  //  "NO"
 
-                //check if citizen is in vaccinated list of virus
-                //already done!!!! in check_done
-
-
-                //check if citizen is in not_vaccinated list of virus
-                //already done!!!! in check_done
-
                 insert_Bloom( *(virlist_temp->not_vacc_bloom), NUM_OF_HASHES, citizen.citizenID);
                 not_vac_elem = malloc(sizeof(struct NotVacSkipRecord));
                 not_vac_elem->name = malloc(sizeof(char) * (strlen(citizen.citizenID)+1));
@@ -176,6 +187,9 @@ void insert_record(Hashtable ht,  struct List** virus_list, CountryHash countrie
         virlist_temp = virlist_temp->next;
     }
 
+    if ( from_console ){
+        printf("SUCCESSFUL INSERTION\n");
+    }
 
 
 }
@@ -200,7 +214,7 @@ bool check_done(bool done, char* id, char* virus, struct List *virus_list, bool 
         if ( strcmp(virus_temp->name, virus ) == 0){
 
 
-            //"NO" &&" there is a record in vaccinated list of this virus
+            //"NO" && there is a record in vaccinated list of this virus
             if ( !done && search_Bloom(*(virus_temp->vacc_bloom), NUM_OF_HASHES, id) ){
                 //search in list
                 if ( searchVacSkipList(virus_temp->vaccinated, id) ){
@@ -232,8 +246,7 @@ bool check_done(bool done, char* id, char* virus, struct List *virus_list, bool 
 
             //"NO" && there is already a record in not vaccinated list of this virus
             if ( !done && search_Bloom( *(virus_temp->not_vacc_bloom), NUM_OF_HASHES, id) == 1 
-                && searchNotVacSkipList( virus_temp->not_vacc, id) == 1
-                ){
+                && searchNotVacSkipList( virus_temp->not_vacc, id) == 1){
 
                 //citizen is registered as not vaccinated
                 printf("ALREADY IN RECORD:   %s\n", id);
@@ -316,6 +329,10 @@ bool check_date(bool done, char* id, char* virus, char* date, struct List *virus
 
 bool is_date(char* string){
 
+    if ( string == NULL ){
+        return 0;
+    }
+
     char *temp = malloc(sizeof(char)*(strlen(string)+1));
     strcpy(temp, string);
 
@@ -324,7 +341,7 @@ bool is_date(char* string){
     char* year = strtok(NULL, "\0");
 
     if ( day == NULL || month == NULL || year == NULL){
-        printf("Pointer points to NULL\n");
+        return 0;
     }
 
 

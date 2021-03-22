@@ -24,11 +24,12 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
     
     while(1){
 
-        printf("Please give instructions\n");
+        printf("\nPlease give instructions\n");
 
         fgets(input,80, stdin);
 
-        printf("input: %s\n",input);
+        //printf("input: %s\n",input);
+        
         if ( strcmp( strtok(input, "\n"), "/exit") == 0){
             return;
         }
@@ -41,10 +42,21 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
             char *citizenID = strtok(NULL, " ");
             virusName = strtok(NULL, "\n");
 
-            printf("CitizenID: %s\n", citizenID);
-            printf("virusName: %s\n", virusName);
+            //check number of arguments
+            if ( citizenID == NULL || virusName == NULL){
+                printf("WRONG INPUT: give citizen's Id and name of virus\n");
+                continue;
+            }
 
+            //printf("CitizenID: %s\n", citizenID);
+            //printf("virusName: %s\n", virusName);
+
+            //get virus node
             virusNode = getelemfromlist(*VirusList, virusName);
+            if ( virusNode == NULL ){
+                printf("No such Virus!\n");
+                continue;
+            }
 
             if ( search_Bloom( *(virusNode->vacc_bloom), NUM_OF_HASHES, citizenID) ){
                 printf("MAYBE\n");
@@ -53,22 +65,36 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
             }
 
 
-        } else if ( strcmp(arg, "/vaccineStatus") == 0){            ///????????????
+        } else if ( strcmp(arg, "/vaccineStatus") == 0){
 
             char *citizenID = strtok(NULL, " ");
             virusName = strtok(NULL, "\n");
 
-            printf("CitizenID: %s\n", citizenID);
+            //check number of arguments
+            if ( citizenID == NULL ){
+                printf("WRONG INPUT: give citizen's Id [and name of virus]\n");
+                continue;
+            }     
+
+
+            //printf("CitizenID: %s\n", citizenID);
             if ( !hashtable_find(citizens, citizenID) ){
                 printf("No such Citizen\n");
                 continue;
             }
-            printf("virusName: %s\n", virusName);
+
+            
 
             if ( virusName != NULL){ //a virus is given
 
+                //printf("virusName: %s\n", virusName);
+
                 //get virus struct
                 virusNode = getelemfromlist(*VirusList, virusName);
+                if ( virusNode == NULL ){
+                    printf("No such Virus!\n");
+                    continue;
+                }
 
                 char *date;
                 if ( (date = getDate_VacSkipList(virusNode->vaccinated, citizenID) ) != NULL ){
@@ -80,7 +106,7 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
 
                 }
 
-            } else {    //virus is not given                       ///????????????
+            } else {    //virus is not given
 
 
                 struct List* virus_temp = *VirusList;
@@ -110,12 +136,20 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
             char *arg3 = strtok(NULL, " ");
             char *arg4 = strtok(NULL, "\n");
 
+            //check number of arguments
+            if ( arg1 == NULL || arg2 == NULL || arg3 == NULL ){
+                printf("WRONG INPUT: give [country] virusname DD-MM-YYYY DD-MM-YYYY\n");
+                continue;
+            }
+
+
+
             if ( arg4 == NULL ){ //case: country was not given
 
                 printf("VirusName: %s,   Date1: %s,   Date2: %s\n", arg1, arg2, arg3);
 
                 if ( !is_date(arg2) || !is_date(arg3) ){
-                    printf("Wrong Dates!\n");
+                    printf("WRONG DATES: must be 'DD-MM-YYY DD-MM-YYY', between 1-1-1900 and 30-12-2100\n");
                     continue;
                 }
                 
@@ -125,7 +159,7 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
             } else {    //country was given
 
                 if ( !is_date(arg3) || !is_date(arg4) ){
-                    printf("Wrong Dates!\n");
+                    printf("WRONG DATES: must be 'DD-MM-YYY DD-MM-YYY', between 1-1-1900 and 30-12-2100\n");
                     continue;
                 }
 
@@ -141,17 +175,19 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
             char *arg3 = strtok(NULL, " ");
             char *arg4 = strtok(NULL, "\n");
 
-            if ( arg1 == NULL || arg2 == NULL || arg3 == NULL){
-                printf("Incorrect Input!\n");
+            //check number of arguments
+            if ( arg1 == NULL || arg2 == NULL || arg3 == NULL ){
+                printf("WRONG INPUT: give [country] virusname DD-MM-YYYY DD-MM-YYYY\n");
                 continue;
             }
+
 
             if ( arg4 == NULL ){ //case: country was not given
 
                 printf("VirusName: %s,   Date1: %s,   Date2: %s\n", arg1, arg2, arg3);
 
                 if ( !is_date(arg2) || !is_date(arg3) ){
-                    printf("Wrong Dates!\n");
+                    printf("WRONG DATES: must be 'DD-MM-YYY DD-MM-YYY', between 1-1-1900 and 30-12-2100\n");
                     continue;
                 }
 
@@ -162,7 +198,7 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
             } else {    //country was given
 
                 if ( !is_date(arg3) || !is_date(arg4) ){
-                    printf("Wrong Dates!\n");
+                    printf("WRONG DATES: must be 'DD-MM-YYY DD-MM-YYY', between 1-1-1900 and 30-12-2100\n");
                     continue;
                 }    
 
@@ -185,22 +221,37 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
             cit.firstname = strtok(NULL, " ");
             cit.lastname = strtok(NULL, " ");
             cit.country = strtok(NULL, " ");
-            cit.age = atoi(strtok(NULL, " "));
+            char *age = strtok(NULL, " ");  //store temporalily for checking purposes
             
             virusName = strtok(NULL, " ");
             
-            bool done;
-            if ( strcmp(strtok(NULL, " "), "YES") == 0){
-                done = true;
-            } else {
-                done = false;
-            }
+            char *done_str = strtok(NULL, "\n");        //handling case date is missing
+            done_str = strtok(done_str, " ");
             char* date = strtok(NULL, "\n");
 
+            //check for correct number of input
+            if ( cit.citizenID == NULL || cit.firstname == NULL || cit.lastname == NULL 
+                ||  cit.country == NULL || age  == NULL || virusName == NULL ){
+
+                    printf("WRONG INPUT: must be 'ID Firstname Lastname Country Age Virus YES/NO [DATE]\n");
+                    continue;
+                }
+
+            
+            cit.age = atoi(age);
+
+            bool done;
+            if ( strcmp(done_str, "YES") == 0){
+                done = true;
+            } else if (strcmp(done_str, "NO") == 0){
+                done = false;
+            } else {
+                printf("WRONG INPUT: must include YES/NO\n");
+                continue;
+            }
+
+
             insert_record(citizens, VirusList, countries, cit, virusName, done, date, true);
-
-
-
 
 
 
@@ -212,22 +263,24 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
             char *firstname = strtok(NULL, " ");
             char *lastname = strtok(NULL, " ");
             char *country = strtok(NULL, " ");
-            int age = atoi(strtok(NULL, " "));
+            char *age_str = strtok(NULL, " ");
             virusName = strtok(NULL, "\n");
 
             //if not all arguments were given
             if ( citizenID == NULL || firstname == NULL || lastname == NULL 
-                || country == NULL || virusName == NULL){
+                || country == NULL || age_str == NULL || virusName == NULL){
                     printf("Please give all info!\n");
                     continue;
                 }
+            
+            int age = atoi(age_str);
 
 
             //check if info matches citizen in record
             struct Citizen* from_hash = hashtable_get(citizens, citizenID);
 
             if ( from_hash == NULL){    //check existence
-                printf("No such citizen in record!\n");
+                printf("ERROR: No such citizen in record!\n");
                 continue;
             } else {    //check if infos match
                 if ( strcmp(from_hash->firstname, firstname) != 0 
@@ -236,19 +289,19 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
                     || from_hash->age != age
                 ){
 
-                    printf("Error in given info!\n"); 
+                    printf("ERROR: incorrect given info!\n"); 
                     continue;
 
                 }
             }
 
+            
+            //get virus struct
+            virusNode = getelemfromlist(*VirusList, virusName);
             //check if virus exists
-            if ( checkifinlist(*VirusList, virusName ) == -1){
-                printf("No such virus in record!\n");
+            if ( virusNode == NULL ){
+                printf("ERROR: No such virus in record!\n");
                 continue;
-            } else {
-                //get virus struct
-                virusNode = getelemfromlist(*VirusList, virusName);
             }
 
             char* ret_date;
@@ -269,13 +322,13 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
             struct VacSkipRecord* vac_element;
             char *cur_date = get_cur_date();
 
-            /*
-            printf("\nNotVaccinatedSkipList: BEFORE\n");    /////////////----------------
+            
+            /*printf("\nNotVaccinatedSkipList: BEFORE\n");    /////////////----------------
             printNotVacSkipList(virusNode->not_vacc);
 
             printf("\nVaccinatedSkipList: BEFORE\n");   /////////////--------------
-            printVacSkipList(virusNode->vaccinated);
-            */
+            printVacSkipList(virusNode->vaccinated);*/
+            
 
             //vaccination not found - add new record
             insert_Bloom( *(virusNode->vacc_bloom), NUM_OF_HASHES, citizenID);
@@ -300,11 +353,11 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
 
             }
 
-            printf("\nVaccinatedSkipList: AFTER\n");    /////////////----------------
+            /*printf("\nVaccinatedSkipList: AFTER\n");    /////////////----------------
             printVacSkipList(virusNode->vaccinated);
 
             printf("\nNotVaccinatedSkipList: AFTER\n");    /////////////----------------
-            printNotVacSkipList(virusNode->not_vacc);
+            printNotVacSkipList(virusNode->not_vacc);*/
 
 
 
@@ -347,12 +400,12 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
                     if (!found) printf("Empty list!\n");
                     
                 } else {
-                    printf("Error: no such virus!\n");
+                    printf("ERROR: No such virus!\n");
                 }
 
 
             } else {
-                printf("Error: Give virus\n");
+                printf("ERROR: Give virus\n");
             }
         }
 
@@ -419,18 +472,22 @@ void populationStatus_all(struct List *VirusList, Hashtable citizens, CountryHas
 
 void populationStatus_one(struct List *VirusList, Hashtable citizens, CountryHash countries, char* country, char* virusname, char* date1, char* date2){
 
-    printf("Country: %s,  VirusName: %s,   Date1: %s,   Date2: %s\n", country, virusname, date1, date2);
+    //printf("Country: %s,  VirusName: %s,   Date1: %s,   Date2: %s\n", country, virusname, date1, date2);
 
     //get virus struct
     struct List* virusNode;
     virusNode = getelemfromlist(VirusList, virusname);
 
-    if ( virusNode == NULL ) {printf("Error: no such virus\n"); return; }
+    if ( virusNode == NULL ) {printf("WRONG INPUT: no such virus\n"); return; }
+
+
 
     VacSkipList vac_temp;
     char* citID_temp;
     struct Citizen *cit_temp;
     int num_of_vacc = 0;
+
+    int total_popul=0;
 
     vac_temp = virusNode->vaccinated;
 
@@ -446,17 +503,47 @@ void populationStatus_one(struct List *VirusList, Hashtable citizens, CountryHas
 
         //if citizen is from this country
         if ( strcmp(cit_temp->country, country) == 0 ){
+            
             if ( datecmp(date1, vac_temp->elem->date) >= 0 && datecmp( vac_temp->elem->date, date2 ) >= 0){
                 num_of_vacc++;
             }
+            total_popul++;
         }
         vac_temp = vac_temp->next;
     }
 
-    struct Country* countryy = hashtable_getCoun(countries, country);
+
+
+    //NOT VACCINATED LIST
+    NotVacSkipList not_vac_temp;
+    not_vac_temp = virusNode->not_vacc;
+
+    while ( not_vac_temp->down != NULL){    //reach bottom
+        not_vac_temp = not_vac_temp->down;
+    }
+
+    not_vac_temp = not_vac_temp->next;
+    while ( not_vac_temp != NULL){
+
+        citID_temp = not_vac_temp->elem->name;  //get citizen id
+        cit_temp = hashtable_get(citizens, citID_temp); //get citizen
+
+        //if citizen is from this country
+        if ( strcmp(cit_temp->country, country) == 0 ){
+            total_popul++;
+        }
+        not_vac_temp = not_vac_temp->next;
+    }
+
+    //printf("Population: %d\n", total_popul);
+
 
     //print results
-    printf("%s %d %f%c\n", country, num_of_vacc, (float)num_of_vacc*100.0/(float)(countryy->population), '%' );
+    if (total_popul == 0){
+        printf("%s: No citizens!\n", country);
+    } else {
+        printf("%s %d %f%c\n", country, num_of_vacc, (float)num_of_vacc*100.0/(float)total_popul, '%' );
+    }
 
 
 }
@@ -550,12 +637,12 @@ void popStatusByAge_one(struct List *VirusList, Hashtable citizens, char* countr
     //get virus struct
     struct List* virusNode;
 
-    printf("Country: %s,  VirusName: %s,   Date1: %s,   Date2: %s\n", country, virusname, date1, date2);
+    //printf("Country: %s,  VirusName: %s,   Date1: %s,   Date2: %s\n", country, virusname, date1, date2);
 
     //get virus struct
     virusNode = getelemfromlist(VirusList, virusname);
 
-    if ( virusNode == NULL ){ printf("Error: no such virus\n"); return; }
+    if ( virusNode == NULL ){ printf("WRONG INPUT: no such virus\n"); return; }
 
     VacSkipList vac_temp;
     char* citID_temp;
@@ -747,38 +834,48 @@ int datecmp(char* date1, char* date2){
 
 
 
-    char *day1 = strtok(newdate1, "-");
-    char *month1 = strtok(NULL, "-");
-    char *year1 = strtok(NULL, "\0");
+    int day1 = atoi(strtok(newdate1, "-"));
+    int month1 = atoi(strtok(NULL, "-"));
+    int year1 = atoi(strtok(NULL, "\0"));
 
-    char *day2 = strtok(newdate2, "-");
-    char *month2 = strtok(NULL, "-");
-    char *year2 = strtok(NULL, "\0");
+    int day2 = atoi(strtok(newdate2, "-"));
+    int month2 = atoi(strtok(NULL, "-"));
+    int year2 = atoi(strtok(NULL, "\0"));
 
-    int str_res;
+    
 
+    if ( year2 > year1){   //if year2 > year1
 
-    str_res = strcmp(year1, year2);
-    if ( str_res < 0 ){   //if year2 > year1
         return 1;
-    } else if ( str_res > 0 ){   //year1 > year2
+
+    } else if ( year1 > year2 ){   //year1 > year2
+
         return -1;
+
     } else {    //case: year1 == year2
 
-        str_res = strcmp(month1, month2);
-        if ( str_res < 0 ){   //if month2 > month1
+        if ( month2 > month1 ){   // month2 > month1
+
             return 1;
-        } else if ( str_res > 0 ){   // month1 > month2
+
+        } else if ( month1 > month2 ){   // month1 > month2
+
             return -1;
+
         } else {    //case: month1 == month2
             
-            str_res = strcmp(day1, day2);
-            if ( str_res < 0 ){   //if day2 > day1
+            if ( day2 > day1 ){   //if day2 > day1
+
                 return 1;
-            } else if ( str_res > 0 ){   // day1 > day2
+
+            } else if ( day1 > day2 ){   // day1 > day2
+
                 return -1;
+
             } else {    //case: day1 == day2
+
                 return 0;
+
             }
 
         }

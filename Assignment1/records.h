@@ -10,7 +10,7 @@
 #include "countries.h"
 
 
-#define LINE_LEN 60
+#define LINE_LEN 300
 
 
 #define ID 1

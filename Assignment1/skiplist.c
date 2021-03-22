@@ -415,9 +415,8 @@ void freeVacSkipList(VacSkipList *list, int *num_of_levels){
     while( *list != NULL ){
 
         while ( (*list)->next != NULL){
-            //temp = (*list)->next;
+
             if ( *num_of_levels == 1){      //if on last level
-                printf("HELLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLOOOOOO---000066\n");
 
                 free((*list)->next->elem->name);
                 free((*list)->next->elem->date);
@@ -789,9 +788,6 @@ void printNotVacSkipList(NotVacSkipList list){
 
 
 void freeNotVacSkipList(NotVacSkipList *list, int *num_of_levels){
-    printf("FREEING!!!\n");
-    printNotVacSkipList(*list);
-    printf("ACTUAL FREEING STARTS NOW\n");
 
 
     if (*list == NULL){
@@ -810,13 +806,12 @@ void freeNotVacSkipList(NotVacSkipList *list, int *num_of_levels){
 
 
     while( *list != NULL ){
-        printf("LEVEL\n");
 
         while ( (*list)->next != NULL){
             
             //temp = (*list)->next;
             if (*num_of_levels == 1){      //if on last level
-                printf("HELLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLOOOOOOOOOOOO\n");
+
                 free((*list)->next->elem->name);
                 free((*list)->next->elem);
 

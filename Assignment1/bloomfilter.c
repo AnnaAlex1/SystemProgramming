@@ -6,33 +6,8 @@
 #include <math.h>
 #include <stdio.h>
 
-int size_in_bits;
+int size_in_bytes;
 
-/*
-int main(void){
-
-
-    struct BloomFilter *bf;
-    bf = init_Bloom();
-
-    insert_Bloom(*bf, 3, "hello");
-    insert_Bloom(*bf, 3, "anna");
-
-    print_Bloom(*bf);
-
-    search_Bloom(*bf, 3, "hello");
-    search_Bloom(*bf, 3, "helo");
-    search_Bloom(*bf, 3, "anna");
-    search_Bloom(*bf, 3, "32ew");
-
-
-
-
-    destroy_Bloom(bf);
-
-}
-
-*/
 
 struct BloomFilter* init_Bloom(){
 
@@ -40,11 +15,10 @@ struct BloomFilter* init_Bloom(){
     struct BloomFilter* bf;
     bf = malloc(sizeof(struct BloomFilter));
 
-    printf("Size in bits: %d\n", size_in_bits);
-    bf->num_of_bits = size_in_bits;
-    bf->num_of_pos = (size_in_bits/8) / sizeof(int) + 1;       //100kb / sizeof(int) -> table size
+    bf->num_of_bits = size_in_bytes*8;
+    bf->num_of_pos = size_in_bytes / sizeof(int) + 1;       //100kb / sizeof(int) -> table size
     bf->array = malloc( (bf->num_of_pos)*sizeof(int) );
-    //bf->array = malloc( (size_in_bits/8) / sizeof(int) + 1);
+    //bf->array = malloc( (size_in_bytes) / sizeof(int) + 1);
 
     for (int i = 0; i < bf->num_of_pos; i++)
     {
@@ -67,7 +41,7 @@ void insert_Bloom(struct BloomFilter bf, int K, char* element){
 
     for (int i = 0; i < K; i++)
     {
-        pos =  hash_i( (unsigned char*)element, i) % size_in_bits;
+        pos =  hash_i( (unsigned char*)element, i) % bf.num_of_bits;
         //printf("Hash value: %ld\n", pos);
         int_num = (float)pos/(8*(float)sizeof(int));
         //printf("Int: %ld\n", int_num);
@@ -94,12 +68,12 @@ int search_Bloom(struct BloomFilter bf, int K, char* element){
     
     unsigned long pos, int_num, bit_num;
 
-    printf("\nSearching for element: %s\n", element);
+    //printf("\nSearching for element: %s\n", element);
 
 
     for (int i = 0; i < K; i++)
     {
-        pos =  hash_i( (unsigned char*)element, i) % size_in_bits;
+        pos =  hash_i( (unsigned char*)element, i) % bf.num_of_bits;
         //printf("Hash value: %ld\n", pos);
         int_num = (float)pos/(8*(float)sizeof(int));
         //printf("Int: %ld\n", int_num);
@@ -108,7 +82,7 @@ int search_Bloom(struct BloomFilter bf, int K, char* element){
 
         
         if ( ( bf.array[int_num] & 1<<bit_num) == 0 ){
-            printf("Definetely not in the structure\n");
+            //printf("Definetely not in the structure\n");
             return 0;
             
         }
@@ -116,7 +90,7 @@ int search_Bloom(struct BloomFilter bf, int K, char* element){
 
     }
 
-    printf("Maybe in the structure.\n");
+    //printf("Maybe in the structure.\n");
     return 1;
 
 

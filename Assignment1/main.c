@@ -12,7 +12,7 @@
 #include "countries.h"
 
 
-extern int size_in_bits;
+extern int size_in_bytes;
 
 
 
@@ -44,13 +44,13 @@ int main( int argc, char *argv[]){
 
         filename = malloc( sizeof(char) * (strlen(argv[2]) + 1) );
         strcpy(filename,argv[2]);
-        size_in_bits = atoi(argv[4]);
+        size_in_bytes = atoi(argv[4]);
 
     } else {
         
         filename = malloc( sizeof(char) * (strlen(argv[4]) + 1) );
         strcpy(filename,argv[4]);
-        size_in_bits = atoi(argv[2]);
+        size_in_bytes = atoi(argv[2]);
 
     }
 
@@ -88,6 +88,11 @@ int main( int argc, char *argv[]){
     console(&virus_list, citizens, countries);
 
    
+    //PRINT STRUCTURES
+    printf("\n\nPRINT STRUCTURES:\n");
+    print_hashtable(citizens);
+    printlist(virus_list);
+    print_hashtableCoun(countries);
 
 
     //RELEASE OF MEMORY
