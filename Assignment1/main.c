@@ -36,8 +36,6 @@ int main( int argc, char *argv[]){
 
     printf("Arguments: %s %s %s %s\n", argv[1], argv[2], argv[3], argv[4]);
 
-    //char filename[] = "citizenRecordsFile.txt"; //must be given in argv
-
     char *filename;
 
     if ( strcmp(argv[1], "-c") == 0 ){

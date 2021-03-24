@@ -45,6 +45,22 @@ else
 fi
 
 
+#check number of lines
+if [ $numLines -lt 1 ]
+then
+    echo "Please give a positive integer!"
+    exit  
+fi
+
+#check duplicatesallowed
+if [ $duplicatesAllowed -ne 1 ] && [ $duplicatesAllowed -ne 0 ] 
+then
+    echo "Please give a 0 or 1!"
+    exit  
+fi
+
+
+########################## 
 #2.READ FILES
 
 #read viruses file
@@ -132,11 +148,8 @@ function create_rest() {
 
 
     #choose virus
-    #echo "Size of array of viruses: " "${#viruses[@]}" 
     let "pos = $RANDOM % ${#viruses[@]}"
-    #echo "$pos"
     virus=${viruses[$pos]}
-    #echo "$virus"
 
     #decide "YES" or "NO"
     let "ran = $RANDOM % 2"

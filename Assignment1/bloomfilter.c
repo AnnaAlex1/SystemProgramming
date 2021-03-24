@@ -18,7 +18,6 @@ struct BloomFilter* init_Bloom(){
     bf->num_of_bits = size_in_bytes*8;
     bf->num_of_pos = size_in_bytes / sizeof(int) + 1;       //100kb / sizeof(int) -> table size
     bf->array = malloc( (bf->num_of_pos)*sizeof(int) );
-    //bf->array = malloc( (size_in_bytes) / sizeof(int) + 1);
 
     for (int i = 0; i < bf->num_of_pos; i++)
     {
@@ -59,7 +58,6 @@ void set_bit(unsigned int* int_pos, int bit_pos){
 
     *int_pos = *int_pos | 1<<bit_pos;
 
-   // *int_pos = *int_pos | (unsigned int)pow(2, bit_pos);
 }
 
 
@@ -86,7 +84,6 @@ int search_Bloom(struct BloomFilter bf, int K, char* element){
             return 0;
             
         }
-        //set_bit( &(bf.array[int_num]), bit_num);
 
     }
 

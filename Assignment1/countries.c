@@ -263,7 +263,6 @@ void print_hashtableCoun(CountryHash ht){
 
 void print_country(struct Country coun){
 
-    //printf("\ncounizen:\n");
     printf("%s  %d\n", coun.name, coun.population);
 }
 
