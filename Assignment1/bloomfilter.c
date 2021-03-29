@@ -35,7 +35,7 @@ void insert_Bloom(struct BloomFilter bf, int K, char* element){
 
     unsigned long pos, int_num, bit_num;
 
-    printf("\nBloomInsert: %s\n", element);
+    //printf("\nBloomInsert: %s\n", element);
 
 
     for (int i = 0; i < K; i++)

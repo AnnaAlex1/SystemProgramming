@@ -16,7 +16,7 @@
 
 void console(struct List** VirusList, Hashtable citizens, CountryHash countries){
 
-    char input[80];
+    char input[300];
     char *arg;
 
     struct List* virusNode = NULL;
@@ -26,7 +26,7 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
 
         printf("\nPlease give instructions\n");
 
-        fgets(input,80, stdin);
+        fgets(input,300, stdin);
 
         //printf("input: %s\n",input);
         
@@ -225,7 +225,9 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
             
             virusName = strtok(NULL, " ");
             
+
             char *done_str = strtok(NULL, "\n");        //handling case date is missing
+            
             done_str = strtok(done_str, " ");
             char* date = strtok(NULL, "\n");
 
@@ -239,7 +241,7 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
 
             
             cit.age = atoi(age);
-
+            
             bool done;
             if ( strcmp(done_str, "YES") == 0){
                 done = true;
@@ -540,7 +542,7 @@ void populationStatus_one(struct List *VirusList, Hashtable citizens, CountryHas
 
     //print results
     if (total_popul == 0){
-        printf("%s: No citizens!\n", country);
+        printf("%s: No citizens registered for this virus!\n", country);
     } else {
         printf("%s %d %f%c\n", country, num_of_vacc, (float)num_of_vacc*100.0/(float)total_popul, '%' );
     }

@@ -67,7 +67,7 @@ int read_file(char* filename, Hashtable ht, struct List** virus_list, CountryHas
 
 
 
-        printf("id: %s\n", citizen.citizenID);
+       /* printf("id: %s\n", citizen.citizenID);
         printf("name: %s\n", citizen.firstname);
         printf("surname: %s\n", citizen.lastname);
         printf("country: %s\n", citizen.country);
@@ -75,11 +75,10 @@ int read_file(char* filename, Hashtable ht, struct List** virus_list, CountryHas
         printf("virus: %s\n", virus);
         printf("done: %d\n", done);
         printf("date: %s\n", date);
-
+        */
         
         insert_record(ht, virus_list, countries ,citizen, virus, done, date, false);
         
-        printf("\n\n");
 
 
     }
@@ -110,7 +109,7 @@ void insert_record(Hashtable ht,  struct List** virus_list, CountryHash countrie
         return;
     }
 
-    printf("Id: %s date: %s done: %d\n", citizen.citizenID, date, done);
+    //printf("Id: %s date: %s done: %d\n", citizen.citizenID, date, done);
     //if date is not given and follows a "YES"
     if (date == NULL && done == true){
         printf("ERROR IN RECORD:   %s\n", citizen.citizenID);

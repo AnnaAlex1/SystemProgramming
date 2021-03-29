@@ -1,5 +1,3 @@
-//main.c
-
 #include "console.h"
 #include "records.h"
 
@@ -33,8 +31,6 @@ int main( int argc, char *argv[]){
     }
 
 
-
-    printf("Arguments: %s %s %s %s\n", argv[1], argv[2], argv[3], argv[4]);
 
     char *filename;
 
@@ -75,10 +71,10 @@ int main( int argc, char *argv[]){
 
 
     //PRINT STRUCTURES
-    printf("\n\nPRINT STRUCTURES:\n");
+    /*printf("\n\nPRINT STRUCTURES:\n");
     print_hashtable(citizens);
     printlist(virus_list);
-    print_hashtableCoun(countries);
+    print_hashtableCoun(countries);*/
 
 
     //SIMULATION
@@ -87,10 +83,10 @@ int main( int argc, char *argv[]){
 
    
     //PRINT STRUCTURES
-    printf("\n\nPRINT STRUCTURES:\n");
+    /*printf("\n\nPRINT STRUCTURES:\n");
     print_hashtable(citizens);
     printlist(virus_list);
-    print_hashtableCoun(countries);
+    print_hashtableCoun(countries);*/
 
 
     //RELEASE OF MEMORY
