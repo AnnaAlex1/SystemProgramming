@@ -7,7 +7,7 @@
 #include <time.h>
 
 
-int max_level = 32;
+int max_level = 32; //log_p/2(N)
 
 
 //FOR VACCINTATED SKIPLIST
@@ -24,6 +24,7 @@ int searchVacSkipList(VacSkipList list, char* id){
 
     while ( temp != NULL ){
 
+        //traverse level
         while( temp!= NULL && temp->next != NULL && strcmp(temp->next->elem->name,id) < 0 ){
             temp = temp->next;
         }
@@ -37,7 +38,7 @@ int searchVacSkipList(VacSkipList list, char* id){
             return 1;
         }
 
-        temp = temp->down;
+        temp = temp->down;  //go to lower level
 
 
     }
@@ -62,6 +63,7 @@ char* getDate_VacSkipList(VacSkipList list, char* id){
 
     while ( temp != NULL ){
 
+        //traverse level
         while( temp!= NULL && temp->next != NULL && strcmp(temp->next->elem->name,id) < 0 ){
             temp = temp->next;
         }
@@ -75,7 +77,7 @@ char* getDate_VacSkipList(VacSkipList list, char* id){
             return temp->next->elem->date;
         }
 
-        temp = temp->down;
+        temp = temp->down; //go to lower level
 
 
     }
@@ -126,13 +128,13 @@ int addVacSkipList(VacSkipList *list, struct VacSkipRecord* element, int *num_of
         
         if ( prev->down != NULL){   //level > 0
 
-            while( temp!= NULL && strcmp(temp->elem->name,element->name) < 0 ){
+            while( temp!= NULL && strcmp(temp->elem->name,element->name) < 0 ){ //find previous node
                 
                 prev = temp;
                 temp = temp->next;
             }
 
-            if ( temp!= NULL && strcmp(temp->elem->name,element->name) == 0 ){
+            if ( temp!= NULL && strcmp(temp->elem->name,element->name) == 0 ){  //already exists
                 return -1;
             }
 
@@ -262,13 +264,13 @@ int removeVacSkipList(VacSkipList *list, char* id, int *num_of_levels){
 
         if ( prev->down != NULL){   //level > 0
 
-            while( temp!= NULL && strcmp(temp->elem->name, id) < 0 ){
+            while( temp!= NULL && strcmp(temp->elem->name, id) < 0 ){    //find previous node
                 
                 prev = temp;
                 temp = temp->next;
             }
 
-            if ( temp!= NULL && strcmp(temp->elem->name, id) == 0 ){
+            if ( temp!= NULL && strcmp(temp->elem->name, id) == 0 ){    //element found
                 to_free = temp;
                 prev->next = temp->next;
                 free(to_free);
@@ -277,6 +279,7 @@ int removeVacSkipList(VacSkipList *list, char* id, int *num_of_levels){
             prev = prev->down;
             temp = prev->next; 
 
+            //if level is now empty
             if ( (*list)->next == NULL && (*list)->down != NULL){
                 to_free = (*list);
                 (*list) = (*list)->down;
@@ -295,7 +298,7 @@ int removeVacSkipList(VacSkipList *list, char* id, int *num_of_levels){
             if ( temp!= NULL && strcmp(temp->elem->name, id) == 0 ){
                 to_free = temp;
                 prev->next = temp->next;
-                free(to_free->elem->name);
+                free(to_free->elem->name);  //free also the element itself
                 free(to_free->elem->date);
                 free(to_free->elem);
                 free(to_free);
@@ -319,7 +322,7 @@ int removeVacSkipList(VacSkipList *list, char* id, int *num_of_levels){
 
 void printVacSkipList(VacSkipList list){
 
-    printf("\n");
+    
 
     if (list == NULL){
         printf("No list. Cannot print.\n");
@@ -343,7 +346,7 @@ void printVacSkipList(VacSkipList list){
         list = list->next;
     }
 
-/*
+/*  /// OTHER FORMAT
     struct VacPtrNodes* temp;
 
 
@@ -390,7 +393,7 @@ void freeVacSkipList(VacSkipList *list, int *num_of_levels){
 
             if ( *num_of_levels == 1){      //if on last level
 
-                free((*list)->next->elem->name);
+                free((*list)->next->elem->name);    //remove also the element itself
                 free((*list)->next->elem->date);
                 free((*list)->next->elem);
 
@@ -430,6 +433,7 @@ int searchNotVacSkipList(NotVacSkipList list, char* id){
 
     while ( temp != NULL ){
 
+        //traverse level
         while( temp!= NULL && temp->next != NULL && strcmp(temp->next->elem->name,id) < 0 ){
             temp = temp->next;
         }
@@ -443,7 +447,7 @@ int searchNotVacSkipList(NotVacSkipList list, char* id){
             return 1;
         }
 
-        temp = temp->down;
+        temp = temp->down;  //go to lower level
 
 
     }
@@ -496,13 +500,14 @@ int addNotVacSkipList(NotVacSkipList *list, struct NotVacSkipRecord* element,  i
         
         if ( prev->down != NULL){   //level > 0
 
-            while( temp!= NULL && strcmp(temp->elem->name,element->name) < 0 ){
+            
+            while( temp!= NULL && strcmp(temp->elem->name,element->name) < 0 ){ //find previous node
                 
                 prev = temp;
                 temp = temp->next;
             }
 
-            if ( temp!= NULL && strcmp(temp->elem->name,element->name) == 0 ){
+            if ( temp!= NULL && strcmp(temp->elem->name,element->name) == 0 ){  //element already exists
                 return -1;
             }
 
@@ -633,13 +638,14 @@ int removeNotVacSkipList(NotVacSkipList *list, char* id, int *num_of_levels){
         
         if ( prev->down != NULL){   //level > 0
 
+            //find previous node
             while( temp!= NULL && strcmp(temp->elem->name, id) < 0 ){
                 
                 prev = temp;
                 temp = temp->next;
             }
 
-            if ( temp!= NULL && strcmp(temp->elem->name, id) == 0 ){
+            if ( temp!= NULL && strcmp(temp->elem->name, id) == 0 ){    //element found
                 to_free = temp;
                 prev->next = temp->next;
                 free(to_free);
@@ -648,6 +654,7 @@ int removeNotVacSkipList(NotVacSkipList *list, char* id, int *num_of_levels){
             prev = prev->down;
             temp = prev->next; 
 
+            //if level is now empty
             if ( (*list)->next == NULL && (*list)->down != NULL){
                 to_free = (*list);
                 (*list) = (*list)->down;
@@ -667,6 +674,7 @@ int removeNotVacSkipList(NotVacSkipList *list, char* id, int *num_of_levels){
             if ( temp!= NULL && strcmp(temp->elem->name, id) == 0 ){
                 to_free = temp;
                 prev->next = temp->next;
+                //free also the elemnt itself
                 free(to_free->elem->name);
                 free(to_free->elem);
                 free(to_free);
@@ -704,7 +712,7 @@ void printNotVacSkipList(NotVacSkipList list){
 
     struct NotVacPtrNodes* temp;
 
-//////
+//////  OTHER FORMAT
 /*    while ( list->down != NULL){
         list = list->down;
     }
@@ -759,7 +767,7 @@ void freeNotVacSkipList(NotVacSkipList *list, int *num_of_levels){
         while ( (*list)->next != NULL){
             
             //temp = (*list)->next;
-            if (*num_of_levels == 1){      //if on last level
+            if (*num_of_levels == 1){      //if on last level, free also element itself
 
                 free((*list)->next->elem->name);
                 free((*list)->next->elem);

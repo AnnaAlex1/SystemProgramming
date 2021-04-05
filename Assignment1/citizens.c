@@ -111,12 +111,12 @@ void hashtable_add(Hashtable ht, struct Citizen cit){
 
     struct Bucket* bucket = ht[pos].bucket;
 
-    if (ht[pos].bucket == NULL){
+    if (ht[pos].bucket == NULL){    //if row is empty
         ht[pos].bucket = bucket_create();
         bucket = ht[pos].bucket;
         memcpy( &bucket->element[bucket->cur_size], new_cit, sizeof(struct Citizen) );
         bucket->cur_size++; 
-    } else {
+    } else {    //find an empty position
 
         bucket = ht[pos].bucket;
         while (bucket->next_buc != NULL && bucket->cur_size == BUC_SIZE){
@@ -157,16 +157,16 @@ int hashtable_find(Hashtable ht, char* element){
         return 0;
     }
 
-    int pos = hashfunction(element);
+    int pos = hashfunction(element);        //find num of row
 
     struct Bucket* bucket = ht[pos].bucket;
 
-    if (ht[pos].bucket == NULL){
+    if (ht[pos].bucket == NULL){    //if empty -> not found
         return 0;
     } else {
 
         bucket = ht[pos].bucket;
-        while (bucket != NULL){
+        while (bucket != NULL){ //traverse row
 
             for (int i = 0; i < BUC_SIZE; i++)
             {
@@ -198,11 +198,11 @@ struct Citizen* hashtable_get(Hashtable ht, char* element){
         return NULL;
     }
 
-    int pos = hashfunction(element);
+    int pos = hashfunction(element);     //find num of row
 
     struct Bucket* bucket = ht[pos].bucket;
 
-    if (ht[pos].bucket == NULL){
+    if (ht[pos].bucket == NULL){       //if empty -> not found
         return NULL;
     } else {
 

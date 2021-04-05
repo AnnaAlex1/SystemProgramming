@@ -41,11 +41,8 @@ void insert_Bloom(struct BloomFilter bf, int K, char* element){
     for (int i = 0; i < K; i++)
     {
         pos =  hash_i( (unsigned char*)element, i) % bf.num_of_bits;
-        //printf("Hash value: %ld\n", pos);
         int_num = (float)pos/(8*(float)sizeof(int));
-        //printf("Int: %ld\n", int_num);
         bit_num = pos % sizeof(int);
-        //printf("Bit in int: %ld\n", bit_num);
         set_bit( &(bf.array[int_num]), bit_num);
 
     }
@@ -72,12 +69,8 @@ int search_Bloom(struct BloomFilter bf, int K, char* element){
     for (int i = 0; i < K; i++)
     {
         pos =  hash_i( (unsigned char*)element, i) % bf.num_of_bits;
-        //printf("Hash value: %ld\n", pos);
         int_num = (float)pos/(8*(float)sizeof(int));
-        //printf("Int: %ld\n", int_num);
         bit_num = pos % sizeof(int);
-        //printf("Bit in int: %ld\n", bit_num);
-
         
         if ( ( bf.array[int_num] & 1<<bit_num) == 0 ){
             //printf("Definetely not in the structure\n");

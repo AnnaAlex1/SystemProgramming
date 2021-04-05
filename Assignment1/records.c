@@ -17,6 +17,7 @@ int read_file(char* filename, Hashtable ht, struct List** virus_list, CountryHas
 
     FILE* cit_file;
 
+    //open file with records
     cit_file = fopen(filename, "r");
     if ( cit_file == NULL){
         perror("Cannot open file!\n");
@@ -34,7 +35,7 @@ int read_file(char* filename, Hashtable ht, struct List** virus_list, CountryHas
 
 
 
-    while( fgets(record, LINE_LEN, cit_file) != NULL){
+    while( fgets(record, LINE_LEN, cit_file) != NULL){  //for every line
 
         //printf("Record: %s\n", record);
 
@@ -109,7 +110,7 @@ void insert_record(Hashtable ht,  struct List** virus_list, CountryHash countrie
         return;
     }
 
-    //printf("Id: %s date: %s done: %d\n", citizen.citizenID, date, done);
+    
     //if date is not given and follows a "YES"
     if (date == NULL && done == true){
         printf("ERROR IN RECORD:   %s\n", citizen.citizenID);

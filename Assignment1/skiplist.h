@@ -2,10 +2,7 @@
 #define __SKIP__
 
 
-#define MAXLVL 32 //log_p/2(N) //N πληθυσμός της γης????
-
-
-//FOR VACCINTATED SKIPLIST
+//FOR VACCINATED SKIPLIST
 struct VacSkipRecord{  //the info we want to keep at the list
     char* name;
     char* date;
@@ -13,13 +10,13 @@ struct VacSkipRecord{  //the info we want to keep at the list
 
 
 struct VacPtrNodes{     //nodes to represent the element in each level
-    struct VacSkipRecord* elem;     //ponter to the node with the element it represents
+    struct VacSkipRecord* elem;     //pointer to the node with the element it represents
     struct VacPtrNodes* down;
     struct VacPtrNodes* next;
 };
 
 
-struct VacPath{
+struct VacPath{ //list to maintain the path
     struct VacPtrNodes* ptr;
     struct VacPath* next;
 };
@@ -46,13 +43,13 @@ struct NotVacSkipRecord{  //the info we want to keep at the list
 
 
 struct NotVacPtrNodes{     //nodes to represent the element in each level
-    struct NotVacSkipRecord* elem;     //ponter to the node with the element it represents
+    struct NotVacSkipRecord* elem;     //pointer to the node with the element it represents
     struct NotVacPtrNodes* down;
     struct NotVacPtrNodes* next;
 };
 
 
-struct NotVacPath{
+struct NotVacPath{  //list to maintain the path
     struct NotVacPtrNodes* ptr;
     struct NotVacPath* next;
 };

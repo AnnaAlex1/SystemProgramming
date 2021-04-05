@@ -55,7 +55,7 @@ void addinlist(struct List** virus_list, char* name){
 
 
 
-//returns -1 if not found, 0 if found
+//returns -1 if not found, 1 if found
 int checkifinlist(struct List* virus_list, char* name){
 
     if (virus_list == NULL) return -1;

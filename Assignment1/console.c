@@ -35,7 +35,6 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
         }
 
         arg = strtok(input, " ");
-        //printf("Input: %s Arg: %s", input, arg);
 
         if ( strcmp(arg, "/vaccineStatusBloom") == 0){
             
@@ -324,13 +323,6 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
             struct VacSkipRecord* vac_element;
             char *cur_date = get_cur_date();
 
-            
-            /*printf("\nNotVaccinatedSkipList: BEFORE\n");    /////////////----------------
-            printNotVacSkipList(virusNode->not_vacc);
-
-            printf("\nVaccinatedSkipList: BEFORE\n");   /////////////--------------
-            printVacSkipList(virusNode->vaccinated);*/
-            
 
             //vaccination not found - add new record
             insert_Bloom( *(virusNode->vacc_bloom), NUM_OF_HASHES, citizenID);
@@ -354,16 +346,6 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
                     }
 
             }
-
-            /*printf("\nVaccinatedSkipList: AFTER\n");    /////////////----------------
-            printVacSkipList(virusNode->vaccinated);
-
-            printf("\nNotVaccinatedSkipList: AFTER\n");    /////////////----------------
-            printNotVacSkipList(virusNode->not_vacc);*/
-
-
-
-
 
 
 

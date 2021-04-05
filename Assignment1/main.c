@@ -16,12 +16,14 @@ extern int size_in_bytes;
 
 int main( int argc, char *argv[]){
 
+
+    //CHECK ARGUMENTS
     if ( argc != 5 ){
         printf("Wrong number of arguments!\n");
         return -1;
     }
 
-    if ( (strcmp(argv[1], "-c") != 0  && strcmp(argv[3], "-c") != 0)
+    if ( (strcmp(argv[1], "-c") != 0  && strcmp(argv[3], "-c") != 0)    
         || (strcmp(argv[1], "-b") != 0  && strcmp(argv[3], "-b") != 0) 
         ){
                 printf("Arguments: %s %s %s %s\n", argv[1], argv[2], argv[3], argv[4]);
@@ -34,13 +36,13 @@ int main( int argc, char *argv[]){
 
     char *filename;
 
-    if ( strcmp(argv[1], "-c") == 0 ){
+    if ( strcmp(argv[1], "-c") == 0 ){          //first -c
 
         filename = malloc( sizeof(char) * (strlen(argv[2]) + 1) );
         strcpy(filename,argv[2]);
         size_in_bytes = atoi(argv[4]);
 
-    } else {
+    } else {                                    //first -b
         
         filename = malloc( sizeof(char) * (strlen(argv[4]) + 1) );
         strcpy(filename,argv[4]);

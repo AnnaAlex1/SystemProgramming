@@ -96,17 +96,17 @@ void hashtable_addCoun(CountryHash ht, char* coun_name){
     new_coun->population = 1;
     
 
-    int pos = hashfunction(coun_name);
+    int pos = hashfunction(coun_name);  //get row to be put
 
     struct BucketCoun* bucket = ht[pos].bucket;
 
-    if (ht[pos].bucket == NULL){
+    if (ht[pos].bucket == NULL){    //if row is empty
         ht[pos].bucket = bucket_createCoun();
         bucket = ht[pos].bucket;
         memcpy( &bucket->element[bucket->cur_size], new_coun, sizeof(struct Country) );
         bucket->cur_size++; 
     } else {
-
+        //find next empty position
         bucket = ht[pos].bucket;
         while (bucket->next_buc != NULL && bucket->cur_size == BUC_SIZE){
             bucket = bucket->next_buc;
@@ -146,11 +146,11 @@ int hashtable_findCoun(CountryHash ht, char* country_name){
         return 0;
     }
 
-    int pos = hashfunction(country_name);
+    int pos = hashfunction(country_name);   //find row
 
     struct BucketCoun* bucket = ht[pos].bucket;
 
-    if (ht[pos].bucket == NULL){
+    if (ht[pos].bucket == NULL){    //row is empty -> not found
         return 0;
     } else {
 
