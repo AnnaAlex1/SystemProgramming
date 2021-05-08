@@ -21,10 +21,13 @@
 
 
 extern int size_in_bytes;   //-s
-int bufferSize;             //-b
+ssize_t bufferSize;             //-b
+int numMonitors;    //-m 
 
+int sent_message_wrong(int fd, const void* message);
 
-int sent_message(int fd, char *message);
+//int sent_message(int fd, const void* message);
+void distribute_subdirs(char * input_dir,int *fd, CountryHash countries, Hashtable citizens, struct List* virus_list);
 
 
 
@@ -38,7 +41,7 @@ int main( int argc, char *argv[]){
     }
 
 
-    int numMonitors;    //-m
+    
     char *input_dir;    //-i
 
     
@@ -273,7 +276,7 @@ int main( int argc, char *argv[]){
 
     printf("Size of Bloom: %d\n", size_in_bytes);
     printf("Num of Monitors: %d\n", numMonitors);
-    printf("BufferSize: %d\n", bufferSize);
+    printf("BufferSize: %ld\n", bufferSize);
     printf("Directory for Input: %s\n", input_dir);
 
     
@@ -290,77 +293,7 @@ int main( int argc, char *argv[]){
     countries = hashtable_createCoun();
 
 
-    //READ FILES
-    DIR *maindr, *subdr;
-    struct dirent *dsub_dir, *dfiles;
 
-
-    //open directory input_dir
-    if ( (maindr = opendir(input_dir)) == NULL ) { perror("Directory cannot open!\n"); return 1; }
-
-
-    //for every subdirectory
-    while ( (dsub_dir = readdir(maindr)) != NULL ){
-
-        printf("%s\n", dsub_dir->d_name);
-
-        if ( (strcmp(dsub_dir->d_name,".") != 0) && (strcmp(dsub_dir->d_name,"..") != 0) ){
-
-            //put country in hashtable
-            hashtable_addCoun(countries, dsub_dir->d_name);
-
-            printf("    Opening Directory: %s\n", dsub_dir->d_name);
-
-            char *path;
-            path = malloc(sizeof(char) * ( strlen(dsub_dir->d_name) + strlen(input_dir) + 2 ) );
-            strcpy(path, input_dir);
-            strcat(path, "/");
-            strcat(path, dsub_dir->d_name);
-
-            //printf("diretory to open: %s\n", path);
-
-            //open sub-directory
-            if ( (subdr = opendir(path)) == NULL ) { perror("Sub-Directory cannot open!"); return 1; }
-
-                
-                //for every file in the sub-directory
-                while ( (dfiles = readdir(subdr)) != NULL ){
-
-                    if ( (strcmp(dfiles->d_name,".") != 0) && (strcmp(dfiles->d_name,"..") != 0) ){
-
-                        printf("        File: %s\n", dfiles->d_name);
-
-                        char *filepath;
-                        filepath = malloc(sizeof(char) * ( strlen(dfiles->d_name) + strlen(path) + 2 ) );         //+1 for the character '/'
-                        strcpy(filepath, path);
-                        strcat(filepath, "/");
-                        strcat(filepath, dfiles->d_name);
-
-                        //printf("file to open: %s\n", filepath);
-
-
-                        if ( read_file(filepath, citizens, &virus_list, countries, dsub_dir->d_name) == 0 ){
-                            printf("Successful reading of file %s!\n", dfiles->d_name);
-                        }
-
-                        free(filepath);
-
-                    }
-
-
-                }
-
-
-
-            closedir(subdr);
-
-            free(path);
-
-        }
-
-
-
-    }
 
     
 
@@ -386,25 +319,12 @@ int main( int argc, char *argv[]){
 
         //CREATE NAMED PIPE 
         if ( mkfifo( ext_pname, 0666) == -1){
-
+                        
             if ( errno != EEXIST ){
                 perror("ERROR: creating Named Pipe");
                 exit(6);
             }
         }
-
-
-        fd[i] = open(ext_pname, O_WRONLY | O_NONBLOCK);
-
-        //sent_message(fd[i], ext_pname);
-
-
-
-//        char bufSize_string[10];
-//        sprintf(bufSize_string, "%d", bufferSize);
-
-        //sent_message(fd[i], bufSize_string);
-
 
 
         //FORK CHILD PROCESS
@@ -428,9 +348,30 @@ int main( int argc, char *argv[]){
         }
 
 
+        
+        fd[i] = open(ext_pname, O_WRONLY);
+        if ( fd[i] < 0 ){
+            perror("ERROR: in opening Named Pipe (from Monitor)\n");
+            exit(1);
+        }
+
+        char bufSize_string[10];
+        sprintf(bufSize_string, "%ld", bufferSize);
+
+        sent_message_wrong(fd[i], bufSize_string);
+
+
+
+
         free(ext_pname);
 
     }
+
+
+    distribute_subdirs(input_dir, fd, countries, citizens, virus_list);
+
+
+
 
    
     //το parent process μοιράζει τα subdirectories σε κάθε Monitor μέσω named_pipes
@@ -494,15 +435,29 @@ int main( int argc, char *argv[]){
     citizens = NULL;
     virus_list = NULL;
 /*    free(input_dir);*/
+
+    sleep(1);
     return 0;
 }
 
 
+int sent_message_wrong(int fd, const void* message){
+
+      
+    if ( write(fd, message, 10000) == -1 ){
+        perror("ERROR: in writing in Named Pipe");
+        return -1;
+    }
+
+    
+    return 0;
+
+}
 
 
 
-
-int sent_message(int fd, char *message){
+/*
+int sent_message(int fd, const void* message){
 
 
        
@@ -534,5 +489,99 @@ int sent_message(int fd, char *message){
 
     
     return 0;
+
+}
+*/
+
+
+void distribute_subdirs(char * input_dir, int *fd, CountryHash countries, Hashtable citizens, struct List* virus_list){
+
+    //READ FILES
+    DIR *maindr, *subdr;
+    struct dirent *dsub_dir, *dfiles;
+
+
+    //open directory input_dir
+    if ( (maindr = opendir(input_dir)) == NULL ) { perror("Directory cannot open!\n"); exit(1); }
+
+    int i=0;
+
+    //for every subdirectory
+    while ( (dsub_dir = readdir(maindr)) != NULL ){
+
+        //printf("%s\n", dsub_dir->d_name);
+
+        if ( (strcmp(dsub_dir->d_name,".") != 0) && (strcmp(dsub_dir->d_name,"..") != 0) ){
+
+            //put country in hashtable
+            hashtable_addCoun(countries, dsub_dir->d_name);
+
+            //printf("    Opening Directory: %s\n", dsub_dir->d_name);
+
+            char *path;
+            path = malloc(sizeof(char) * ( strlen(dsub_dir->d_name) + strlen(input_dir) + 2 ) );
+            strcpy(path, input_dir);
+            strcat(path, "/");
+            strcat(path, dsub_dir->d_name);
+
+            printf("File descriptor: fd[%d]=%d, subdirectory: %s\n", i, fd[i], path);
+            sent_message_wrong(fd[i], path);
+
+            i = (i + 1) % numMonitors;
+
+            //printf("diretory to open: %s\n", path);
+/*
+            //open sub-directory
+            if ( (subdr = opendir(path)) == NULL ) { perror("Sub-Directory cannot open!"); exit(1); }
+
+                
+                
+            //for every file in the sub-directory
+            while ( (dfiles = readdir(subdr)) != NULL ){
+
+                if ( (strcmp(dfiles->d_name,".") != 0) && (strcmp(dfiles->d_name,"..") != 0) ){
+
+                    printf("        File: %s\n", dfiles->d_name);
+
+                    char *filepath;
+                    filepath = malloc(sizeof(char) * ( strlen(dfiles->d_name) + strlen(path) + 2 ) );         //+1 for the character '/'
+                    strcpy(filepath, path);
+                    strcat(filepath, "/");
+                    strcat(filepath, dfiles->d_name);
+
+                    //printf("file to open: %s\n", filepath);
+
+                    
+                    if ( read_file(filepath, citizens, &virus_list, countries, dsub_dir->d_name) == 0 ){
+                        printf("Successful reading of file %s!\n", dfiles->d_name);
+                    }
+                    
+
+                    free(filepath);
+
+                }
+
+
+            }
+                
+
+
+            closedir(subdr);
+*/
+//            free(path);
+
+        }
+
+
+
+    }
+
+
+    for (int i = 0; i < numMonitors; i++)
+    {
+        sent_message_wrong(fd[i], "DONE");
+    }
+    
+
 
 }
