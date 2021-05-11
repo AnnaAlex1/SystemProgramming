@@ -137,3 +137,114 @@ int deletelist(struct List** virus_list){
     return 0;
 
 }
+
+
+
+
+
+
+
+//////////////////////////////////////////////
+
+
+void addinVirMain(struct VirusesListMain** virus_list, char* name, unsigned int *bloom){
+
+    //printf("Virus List:  %s\n", name);
+
+    struct VirusesListMain* newnode;
+    newnode = malloc(sizeof(struct VirusesListMain));
+    newnode->name = malloc(sizeof(char)* (strlen(name)+1));
+    memcpy(newnode->name, name, sizeof(char)* (strlen(name)+1) );
+    newnode->vacc_bloom = init_Bloom();
+    memcpy(&(newnode->vacc_bloom->array), bloom, (newnode->vacc_bloom->num_of_pos)*sizeof(int));
+    
+    newnode->next = NULL;
+
+    printf("HEREEEEEEEEEEEEEEEEEEEEEEEEEEE\n");
+
+    struct VirusesListMain* temp;
+
+    if (*virus_list == NULL){
+        *virus_list = newnode;
+    } else {
+        temp = *virus_list;
+
+        //place at the beginning:
+        *virus_list = newnode;
+        newnode->next = temp;
+        
+    }
+
+    return;
+
+
+
+
+}
+
+
+
+
+struct VirusesListMain* getelemfromVirMain(struct VirusesListMain* virus_list, char* element){
+
+    if (virus_list == NULL) return NULL;
+
+    while (virus_list != NULL && strcmp(virus_list->name,element) != 0){
+
+        virus_list = virus_list->next;
+    }
+
+    if (virus_list == NULL){        //case: not found
+        return NULL;
+    } 
+
+    return virus_list;
+
+}
+
+
+
+void printVirMain(struct VirusesListMain* virus_list){
+
+    if (virus_list == NULL){
+        printf("List is Empty!\n\n");
+        return;
+    }
+
+    printf("\nMy List:\n");
+
+    while(virus_list != NULL){
+        printf("%s  ", virus_list->name);
+        virus_list = virus_list->next;
+    }
+
+    printf("\n");
+
+}
+
+
+
+
+
+
+
+int deleteVirMain(struct VirusesListMain** virus_list){
+    
+    printf("Deleting Viruses List...\n");
+    if (*virus_list == NULL) return -1;
+
+    struct VirusesListMain* to_free;
+
+    while(*virus_list != NULL){
+        to_free = *virus_list;
+        *virus_list = (*virus_list)->next;
+        free(to_free->name);
+        destroy_Bloom(to_free->vacc_bloom);
+        free(to_free);
+    }
+
+    return 0;
+
+
+}
+

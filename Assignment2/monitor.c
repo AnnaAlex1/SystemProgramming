@@ -76,7 +76,6 @@ int main(int argc, char* argv[]){
 
     ///////////////////////////////////////????
     //GET BLOOMSIZE 
-    size_in_bytes = 10000;
     message = get_message_wrong( fd_r,  sizeof(int));         //get buffersize
     if ( strcmp(message, "error") == 0){
         exit(2);
@@ -113,8 +112,9 @@ int main(int argc, char* argv[]){
     } 
 
 
+
     //Αποστολή των Bloomfilter (για κάθε ίωση)
-    if (sent_bloomfilters(virus_list)){
+    if (sent_bloomfilters(fd_w, virus_list, buffersize) == -1){
         perror("ERROR in sending bloomfilters");
         exit(1);
     }
@@ -220,7 +220,7 @@ int store_records(int fd_r, char* pipename, Hashtable citizens, struct List** vi
 
         if ( count_name != NULL ){
             count_name++;                   
-            printf( "The folder is : %s", count_name ); // For example print it to see the result
+            printf( "The folder is: %s\n", count_name ); // For example print it to see the result
         } else {
             printf("Wrong Folder Name\n");
         }

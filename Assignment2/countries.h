@@ -33,4 +33,46 @@ void hashtable_destroyCoun(CountryHash ht);
 void print_hashtableCoun(CountryHash ht);
 void print_country(struct Country coun);
 
+
+///////////////////////////////////
+
+
+struct CountryMain{
+    char *name;
+    int pid;
+};
+
+
+struct TablePosCounMain{
+    struct BucketCounMain* bucket;
+};
+
+
+struct BucketCounMain{
+    struct CountryMain* element;
+    int cur_size;
+    struct BucketCounMain* next_buc;
+};
+
+typedef struct TablePosCounMain* CountryMainHash;
+
+
+
+CountryMainHash hashtable_createCounMain();
+struct BucketCounMain* bucket_createCounMain();
+void hashtable_addCounMain(CountryMainHash ht, char* coun_name, int pid);
+int hashtable_findCounMain(CountryMainHash ht, char* country_name);
+struct CountryMain* hashtable_getCounMain(CountryMainHash ht, char* country_name);
+void hashtable_destroyCounMain(CountryMainHash ht);
+void print_hashtableCounMain(CountryMainHash ht);
+void print_countryMain(struct CountryMain coun);
+
+
+
+
+
+
+
+
+
 #endif

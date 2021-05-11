@@ -26,4 +26,26 @@ int deletelist(struct List** virus_list);
 struct List* getelemfromlist(struct List* virus_list, char* element);
 void printlist(struct List* virus_list);
 
+
+///////////////////////////////////////////////////
+
+struct VirusesListMain {
+    char* name;
+    struct BloomFilter* vacc_bloom;
+    struct VirusesListMain* next;
+};
+
+
+
+void addinVirMain(struct VirusesListMain** virus_list, char* name, unsigned int *bloom);
+int deleteVirMain(struct VirusesListMain** virus_list);
+struct VirusesListMain* getelemfromVirMain(struct VirusesListMain* virus_list, char* element);
+void printVirMain(struct VirusesListMain* virus_list);
+
+
+
+
+
+
+
 #endif

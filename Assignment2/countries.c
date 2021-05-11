@@ -266,3 +266,218 @@ void print_country(struct Country coun){
     printf("%s  %d\n", coun.name, coun.population);
 }
 
+///////////////////////////////////////////////////////////////////////////
+
+
+
+
+CountryMainHash hashtable_createCounMain(){
+
+    CountryMainHash ht;
+
+    ht = malloc(sizeof(struct TablePosCounMain)*TABLE_SIZE);
+    for (int i = 0; i < TABLE_SIZE; i++)
+    {
+        ht[i].bucket = NULL;
+    }
+    
+
+    return ht;
+
+}
+
+
+
+struct BucketCounMain* bucket_createCounMain(){
+    
+    struct BucketCounMain* new_Bucket;
+
+    new_Bucket = malloc(sizeof(struct BucketCounMain));
+    
+    new_Bucket->element = malloc(sizeof(struct CountryMain)*BUC_SIZE );
+    new_Bucket->cur_size=0;
+    new_Bucket->next_buc=NULL;
+
+    for (int i = 0; i < BUC_SIZE; i++){
+        new_Bucket->element[i].name = NULL;
+        new_Bucket->element[i].pid = -1;
+    }
+    
+
+    return new_Bucket;
+}
+
+
+
+
+void hashtable_addCounMain(CountryMainHash ht, char* coun_name, int pid){
+    
+    struct CountryMain* new_coun;
+    new_coun = malloc(sizeof(struct CountryMain));
+    new_coun->name = malloc(sizeof(char) * (strlen(coun_name)+1));
+    strcpy(new_coun->name, coun_name);
+    new_coun->pid = pid;
+
+
+    int pos = hashfunction(coun_name);  //get row to be put
+
+    struct BucketCounMain* bucket = ht[pos].bucket;
+
+    if (ht[pos].bucket == NULL){    //if row is empty
+        ht[pos].bucket = bucket_createCounMain();
+        bucket = ht[pos].bucket;
+        memcpy( &bucket->element[bucket->cur_size], new_coun, sizeof(struct CountryMain) );
+        bucket->cur_size++; 
+    } else {
+        //find next empty position
+        bucket = ht[pos].bucket;
+        while (bucket->next_buc != NULL && bucket->cur_size == BUC_SIZE){
+            bucket = bucket->next_buc;
+        }
+
+        if (bucket->next_buc == NULL ){  //case: no empty bucket, need to create another
+            
+            bucket->next_buc = bucket_createCounMain();
+            memcpy( &bucket->element[bucket->cur_size], new_coun, sizeof(struct CountryMain) );
+            bucket->cur_size++;   
+
+        } else if (bucket->cur_size < BUC_SIZE){        //case: found a bucket with space
+            
+            
+            for (int j=0; j<BUC_SIZE; j++){
+                if (bucket->element[j].name == NULL){
+                memcpy( &bucket->element[bucket->cur_size], new_coun, sizeof(struct CountryMain) );
+                bucket->cur_size++; 
+                    break;
+                }
+            }
+
+        }
+    }
+
+    free(new_coun);
+
+}
+
+
+
+
+struct CountryMain* hashtable_getCounMain(CountryMainHash ht, char* country_name){
+
+    if (ht == NULL){
+        printf("Hashtable is Empty!\n");
+        return NULL;
+    }
+
+    int pos = hashfunction(country_name);
+
+    struct BucketCounMain* bucket = ht[pos].bucket;
+
+    if (ht[pos].bucket == NULL){
+        return NULL;
+    } else {
+
+        bucket = ht[pos].bucket;
+        while (bucket != NULL){
+
+            for (int i = 0; i < BUC_SIZE; i++)
+            {
+                if (bucket->element[i].name != NULL){    //if position is not empty
+
+                    if ( strcmp(bucket->element[i].name, country_name ) == 0 ){    //if found
+                        return &(bucket->element[i]);
+                    }
+
+                }
+            }
+            
+
+
+            bucket = bucket->next_buc;
+        }
+
+    }
+    return NULL;
+}
+
+
+
+void hashtable_destroyCounMain(CountryMainHash ht){
+   
+    if (ht == NULL){
+        return;
+    }
+
+    printf("Destroying the Hashtable...\n");
+
+
+    struct BucketCounMain* current_buc;
+
+    for (int i = 0; i < TABLE_SIZE; i++)
+    {   
+        
+
+        while (ht[i].bucket != NULL){
+
+            current_buc = ht[i].bucket;
+
+            for (int j = 0; j < BUC_SIZE; j++){
+                free(current_buc->element[j].name);
+
+            }
+            
+            free(current_buc->element);
+
+            ht[i].bucket = current_buc->next_buc;
+
+            free(current_buc);
+
+        }
+           
+    }
+
+}
+
+
+
+void print_hashtableCounMain(CountryMainHash ht){
+    
+    printf("\n");
+
+    if (ht == NULL){
+        printf("Hashtable is Empty!\n");
+        return;
+    }
+
+    printf("Countries:\n");
+    struct BucketCounMain* current_buc;
+
+    for (int i = 0; i < TABLE_SIZE; i++)
+    {   
+        current_buc = ht[i].bucket;
+
+        while ( current_buc != NULL){
+
+            for (int j = 0; j < BUC_SIZE; j++){
+                if (current_buc->element[j].name != NULL)
+                    print_countryMain(current_buc->element[j]);
+            }
+            
+            
+            current_buc = current_buc->next_buc;
+
+            
+
+        }
+        //printf("\n");
+           
+    } 
+    printf("\n");
+}
+
+
+void print_countryMain(struct CountryMain coun){
+    
+    printf("%s in Monitor %d\n", coun.name, coun.pid);
+ 
+}

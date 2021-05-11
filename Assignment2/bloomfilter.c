@@ -11,7 +11,6 @@ int size_in_bytes;
 
 struct BloomFilter* init_Bloom(){
 
-
     struct BloomFilter* bf;
     bf = malloc(sizeof(struct BloomFilter));
 

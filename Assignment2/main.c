@@ -24,8 +24,7 @@ extern int size_in_bytes;   //-s
 size_t bufferSize = 10000;             //-b
 int numMonitors;    //-m 
 
-void distribute_subdirs(char * input_dir,int *fd, CountryHash countries);
-
+void distribute_subdirs(char * input_dir, struct MonitorStruct *commun, CountryMainHash countries);
 
 
 int main( int argc, char *argv[]){
@@ -278,8 +277,8 @@ int main( int argc, char *argv[]){
 
     
     //Hashtable of Countries
-    CountryHash countries;
-    countries = hashtable_createCoun();
+    CountryMainHash countries;
+    countries = hashtable_createCounMain();
 
 
     //Δημιουργία named pipes
@@ -289,8 +288,13 @@ int main( int argc, char *argv[]){
     char *extr_pname;
     char number[5];
 
-    int fd[2][numMonitors];
-    int pids[numMonitors];
+    //int fd[2][numMonitors];
+    //int pids[numMonitors];
+    struct MonitorStruct commun[numMonitors];
+    for (int i = 0; i < numMonitors; i++){
+        commun[i].viruses = NULL;
+    }
+    
 
 
     for (int i=0; i<numMonitors; i++){
@@ -344,14 +348,14 @@ int main( int argc, char *argv[]){
 
 
         //FORK CHILD PROCESS
-        pids[i] = fork();
+        commun[i].pid = fork();
 
-        if ( pids[i] == -1 ){
+        if ( commun[i].pid == -1 ){
             perror("ERROR: in fork");
             exit(1);
         }
 
-        if ( pids[i] == 0 ){
+        if ( commun[i].pid == 0 ){
             //this is a child process
 
             char *args[] = {"./monitor", extw_pname, extr_pname, NULL};
@@ -364,15 +368,14 @@ int main( int argc, char *argv[]){
         }
 
 
-        
-        fd[0][i] = open(extw_pname, O_WRONLY);
-        if ( fd[0][i] < 0 ){
+        commun[i].fd_w = open(extw_pname, O_WRONLY);
+        if ( commun[i].fd_w < 0 ){
             perror("ERROR: in opening Named Pipe (from Monitor)");
             exit(1);
         }
 
-        fd[1][i] = open(extr_pname, O_RDONLY);
-        if ( fd[1][i] < 0 ){
+        commun[i].fd_r = open(extr_pname, O_RDONLY);
+        if ( commun[i].fd_r < 0 ){
             perror("ERROR: in opening Named Pipe (from Monitor)");
             exit(1);
         }
@@ -382,10 +385,10 @@ int main( int argc, char *argv[]){
         char mes_to_sent[sizeof(long)];
         sprintf(mes_to_sent, "%ld", bufferSize);
 
-        sent_message_wrong(fd[0][i], mes_to_sent, sizeof(long));
+        sent_message_wrong(commun[i].fd_w, mes_to_sent, sizeof(long));
 
         sprintf(mes_to_sent, "%d", size_in_bytes);
-        sent_message_wrong(fd[0][i], mes_to_sent, sizeof(int));
+        sent_message_wrong(commun[i].fd_w, mes_to_sent, sizeof(int));
 
 
         free(extw_pname);
@@ -394,10 +397,15 @@ int main( int argc, char *argv[]){
     }
 
     printf("\nDistribution of folders:\n");
-    distribute_subdirs(input_dir, fd[0], countries);
+    distribute_subdirs(input_dir, commun, countries);
 
+    
 
     //ΑΝΑΜΟΝΗ ΓΙΑ BLOOMFILTERS
+    if (get_bloomfilters(commun, bufferSize, numMonitors) == -1){
+        perror("ERROR in getting bloomfilters");
+        exit(1);
+    }
 
 
     //ΛΗΨΗ ΜΗΝΥΜΑΤΟΣ ΕΤΟΙΜΟΤΗΤΑΣ
@@ -423,26 +431,29 @@ int main( int argc, char *argv[]){
    int status;
    
 
-   for (int i = 0; i < numMonitors; i++)
-   {
-        waitpid(pids[i], &status, 0);
-        printf("PID: %d, status: %d\n",pids[i], status);
+   for (int i = 0; i < numMonitors; i++){
+        waitpid(commun[i].pid, &status, 0);
+        printf("PID: %d, status: %d\n",commun[i].pid, status);
         printf("WTERMSIG(status)= %d\n", WTERMSIG(status));
+        printf("WIFEXITED(status)= %d\n", WIFEXITED(status));
    }
    
 
 
     printf("\nFinished with Pipes\n");
-    for (int i = 0; i < 2; i++)
-        for (int j = 0; j < numMonitors; j++) 
-            close(fd[i][j]);
+    
+    for (int i = 0; i < numMonitors; i++) {
+        close(commun[i].fd_w);
+        close(commun[i].fd_r);
+    }
+        
 
     
     
 
     
 
-    hashtable_destroyCoun(countries);
+    hashtable_destroyCounMain(countries);
     free(countries);
 
     return 0;
@@ -460,7 +471,7 @@ int main( int argc, char *argv[]){
 
 
 
-void distribute_subdirs(char * input_dir, int *fd, CountryHash countries){
+void distribute_subdirs(char * input_dir, struct MonitorStruct *commun, CountryMainHash countries){
 
     //READ FILES
     DIR *maindr;
@@ -480,19 +491,19 @@ void distribute_subdirs(char * input_dir, int *fd, CountryHash countries){
         if ( (strcmp(dsub_dir->d_name,".") != 0) && (strcmp(dsub_dir->d_name,"..") != 0) ){
 
             //put country in hashtable
-            hashtable_addCoun(countries, dsub_dir->d_name);
+            hashtable_addCounMain(countries, dsub_dir->d_name, commun[i].pid);
 
             printf("    Opening Directory: %s\n", dsub_dir->d_name);
 
             char *path;
-            //path = malloc(sizeof(char) * ( strlen(dsub_dir->d_name) + strlen(input_dir) + 2 ) );
-            path=malloc(bufferSize);
+            path = malloc(sizeof(char) * ( strlen(dsub_dir->d_name) + strlen(input_dir) + 2 ) );
+            //path=malloc(bufferSize);
             strcpy(path, input_dir);
             strcat(path, "/");
             strcat(path, dsub_dir->d_name);
 
             //printf("File descriptor: fd[%d]=%d, subdirectory: %s\n", i, fd[i], path);
-            sent_message_wrong(fd[i], path, bufferSize);
+            sent_message_wrong(commun[i].fd_w, path, bufferSize);
 
             i = (i + 1) % numMonitors;
 
@@ -503,11 +514,8 @@ void distribute_subdirs(char * input_dir, int *fd, CountryHash countries){
     printf("\nFinished Distribution\n");
     char *mes = malloc(bufferSize);
     strcpy(mes, "DONE");
-    for (int i = 0; i < numMonitors; i++)
-    {
-       
-        sent_message_wrong(fd[i], mes, bufferSize);
-        
+    for (int i = 0; i < numMonitors; i++){
+        sent_message_wrong(commun[i].fd_w, mes, bufferSize);
     }
     free(mes);
     printf("Finished Sending DONE signal\n");
