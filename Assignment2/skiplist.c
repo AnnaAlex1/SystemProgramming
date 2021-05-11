@@ -92,7 +92,6 @@ char* getDate_VacSkipList(VacSkipList list, char* id){
 
 int addVacSkipList(VacSkipList *list, struct VacSkipRecord* element, int *num_of_levels){
     
-    //printf("VaccList: ADDING: %s\n", element->name);
     //printf("Current height = %d\n", num_of_levels);
 
     if((*list) == NULL ){

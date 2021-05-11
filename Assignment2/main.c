@@ -1,33 +1,30 @@
 #include "console.h"
-#include "records.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
+#include<sys/wait.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
 #include <fcntl.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <signal.h>
 #include <errno.h>
 
-#include<sys/wait.h>
-
-
+#include "records.h"
+#include "sh_pipes.h"
 #include "citizens.h"
 #include "countries.h"
 
 
 extern int size_in_bytes;   //-s
-ssize_t bufferSize;             //-b
+size_t bufferSize = 10000;             //-b
 int numMonitors;    //-m 
 
-int sent_message_wrong(int fd, const void* message);
-
-//int sent_message(int fd, const void* message);
-void distribute_subdirs(char * input_dir,int *fd, CountryHash countries, Hashtable citizens, struct List* virus_list);
+void distribute_subdirs(char * input_dir,int *fd, CountryHash countries);
 
 
 
@@ -277,48 +274,41 @@ int main( int argc, char *argv[]){
     printf("Size of Bloom: %d\n", size_in_bytes);
     printf("Num of Monitors: %d\n", numMonitors);
     printf("BufferSize: %ld\n", bufferSize);
-    printf("Directory for Input: %s\n", input_dir);
+    printf("Directory for Input: %s\n\n", input_dir);
 
     
-
-    //List of viruses
-    struct List* virus_list = NULL;
-
-    //Hashtable of citizens
-    Hashtable citizens;
-    citizens = hashtable_create();
-
     //Hashtable of Countries
     CountryHash countries;
     countries = hashtable_createCoun();
 
 
-
-
-    
-
-
     //Δημιουργία named pipes
-    char *gen_pname = "pipes/fifo";
-    char *ext_pname;
-    char num_pname[5];
+    char w_pname[] = "pipes/wfifo";
+    char r_pname[] = "pipes/rfifo";
+    char *extw_pname;
+    char *extr_pname;
+    char number[5];
 
-    int fd[numMonitors];
+    int fd[2][numMonitors];
+    int pids[numMonitors];
+
 
     for (int i=0; i<numMonitors; i++){
 
 
+
+        //PIPE FOR WRITING
+       
         //BUILD PIPE NAME
-        sprintf(num_pname, "%d", i);        //convert counter to string
-        ext_pname = malloc( sizeof(char) * ( strlen(gen_pname) + strlen(num_pname) + 1) );
-        strcat(ext_pname, gen_pname);
-        strcat(ext_pname, num_pname);       //add counter at the end of string
-        printf("Name: %s\n", ext_pname);
+        sprintf(number, "%d", i);        //convert counter to string
+        extw_pname = malloc( sizeof(char) * ( strlen(w_pname) + strlen(number) + 1) );
+        strcpy(extw_pname, w_pname);
+        strcat(extw_pname, number);       //add counter at the end of string
+        printf("Name: %s\n", extw_pname);
 
 
-
-        //CREATE NAMED PIPE 
-        if ( mkfifo( ext_pname, 0666) == -1){
+        //CREATE NAMED PIPE FOR WRITING
+        if ( mkfifo( extw_pname, 0666) == -1){
                         
             if ( errno != EEXIST ){
                 perror("ERROR: creating Named Pipe");
@@ -327,18 +317,44 @@ int main( int argc, char *argv[]){
         }
 
 
-        //FORK CHILD PROCESS
-        int pid = fork();
 
-        if ( pid == -1 ){
+
+
+        //PIPE FOR READING
+ 
+        //BUILD PIPE NAME
+        extr_pname = malloc( sizeof(char) * ( strlen(r_pname) + strlen(number) + 1) );
+        strcpy(extr_pname, r_pname);
+        strcat(extr_pname, number);       //add counter at the end of string
+        printf("Name: %s\n", extr_pname);
+
+
+
+        //CREATE NAMED PIPE FOR WRITING
+        if ( mkfifo( extr_pname, 0666) == -1){
+                        
+            if ( errno != EEXIST ){
+                perror("ERROR: creating Named Pipe");
+                exit(6);
+            }
+        }
+
+
+
+
+
+        //FORK CHILD PROCESS
+        pids[i] = fork();
+
+        if ( pids[i] == -1 ){
             perror("ERROR: in fork");
             exit(1);
         }
 
-        if ( pid == 0 ){
+        if ( pids[i] == 0 ){
             //this is a child process
 
-            char *args[] = {"./monitor", ext_pname, NULL};
+            char *args[] = {"./monitor", extw_pname, extr_pname, NULL};
 
             //execute Monitor Process
             if (execv(args[0], args)){
@@ -349,156 +365,106 @@ int main( int argc, char *argv[]){
 
 
         
-        fd[i] = open(ext_pname, O_WRONLY);
-        if ( fd[i] < 0 ){
-            perror("ERROR: in opening Named Pipe (from Monitor)\n");
+        fd[0][i] = open(extw_pname, O_WRONLY);
+        if ( fd[0][i] < 0 ){
+            perror("ERROR: in opening Named Pipe (from Monitor)");
             exit(1);
         }
 
-        char bufSize_string[10];
-        sprintf(bufSize_string, "%ld", bufferSize);
-
-        sent_message_wrong(fd[i], bufSize_string);
-
-
-
-
-        free(ext_pname);
-
-    }
-
-
-    distribute_subdirs(input_dir, fd, countries, citizens, virus_list);
-
-
-
-
-   
-    //το parent process μοιράζει τα subdirectories σε κάθε Monitor μέσω named_pipes
-    /*
-    int i = 0; //for choosing Monitor
-
-    char example[]= "example";
-
-    while ( i < numMonitors ){    //for all subdirectories
-
-
-        //get name of subdirectory
-        sent_message(fd[i], example);
-
-        i = (i + 1) % numMonitors;
-
-    }
-
-    */
-
-
-
-
-
-
-
-    //PRINT STRUCTURES
-    /*printf("\n\nPRINT STRUCTURES:\n");
-    print_hashtable(citizens);
-    printlist(virus_list);
-    print_hashtableCoun(countries);
-    */
-    /*
-    //SIMULATION
-    printf("\n\nSIMULATION:\n");
-    console(&virus_list, citizens, countries);
-    */
-   
-    //PRINT STRUCTURES
-    /*printf("\n\nPRINT STRUCTURES:\n");
-    print_hashtable(citizens);
-    printlist(virus_list);
-    print_hashtableCoun(countries);*/
-
-
-
-
-
-    for (int i=0; i<numMonitors; i++) close(fd[i]);
-
-    
-    //while(wait(NULL) > 0);
-
-    //RELEASE OF MEMORY
-    printf("\nRELEASE OF MEMORY.\n");
-    hashtable_destroyCoun(countries);
-    hashtable_destroy(citizens);
-    deletelist(&virus_list);
-    free(citizens);
-    free(countries);
-    citizens = NULL;
-    virus_list = NULL;
-/*    free(input_dir);*/
-
-    sleep(1);
-    return 0;
-}
-
-
-int sent_message_wrong(int fd, const void* message){
-
-      
-    if ( write(fd, message, 10000) == -1 ){
-        perror("ERROR: in writing in Named Pipe");
-        return -1;
-    }
-
-    
-    return 0;
-
-}
-
-
-
-/*
-int sent_message(int fd, const void* message){
-
-
-       
-    int total_len = strlen(message)+1;
-    int remainder_len = total_len;        //length of string still to be sent
-    char remainder[bufferSize];
-    
-    int i=0;
-    while ( remainder_len > 0){
-
-        //printf("Write no %d\n", i);
-        memcpy(remainder, message + total_len - remainder_len, remainder_len);
-        
-        if ( remainder_len < bufferSize ){
-
-            for (int i=remainder_len; i<bufferSize; i++){
-                remainder[i] = '\0';
-            }
+        fd[1][i] = open(extr_pname, O_RDONLY);
+        if ( fd[1][i] < 0 ){
+            perror("ERROR: in opening Named Pipe (from Monitor)");
+            exit(1);
         }
 
-        if ( write(fd, remainder, 12) == -1 ){
-            perror("ERROR: in writing in Named Pipe");
-            return -1;
-        }
-        //printf("Write no %d END\n", i);
-        remainder_len = remainder_len - bufferSize;
-        i++;
+
+
+        char mes_to_sent[sizeof(long)];
+        sprintf(mes_to_sent, "%ld", bufferSize);
+
+        sent_message_wrong(fd[0][i], mes_to_sent, sizeof(long));
+
+        sprintf(mes_to_sent, "%d", size_in_bytes);
+        sent_message_wrong(fd[0][i], mes_to_sent, sizeof(int));
+
+
+        free(extw_pname);
+        free(extr_pname);
+
     }
 
-    
-    return 0;
+    printf("\nDistribution of folders:\n");
+    distribute_subdirs(input_dir, fd[0], countries);
 
-}
+
+    //ΑΝΑΜΟΝΗ ΓΙΑ BLOOMFILTERS
+
+
+    //ΛΗΨΗ ΜΗΝΥΜΑΤΟΣ ΕΤΟΙΜΟΤΗΤΑΣ
+
+    // ΣΗΜΑ SIGCHLD
+    /* ΑΝ ΕΝΑ ΜΟΝΙΤΟΡ ΣΤΑΜΑΤΗΣΕΙ ΞΑΦΙΝΚΑ 
+    θα πρέπει το parent process να κάνει fork νέο Monitor 
+    process που θα το αντικαταστήσει.
+    */
+    
+
+    /*ΣΗΜΑ SIGINT ή SIGQUIT
+
+    πρώτα να τελειώσει την επεξεργασία της τρέχουσας εντολής από το χρήστη 
+    Και αφού έχει απαντήσει στο χρήστη, θα στέλνει ένα SIGKILL σήμα στους Monitors, 
+    θα τους περιμένει να τερματίσουν, και στο τέλος 
+    θα τυπώνει σε ένα αρχείο με ονομασία log_file.χχχ όπου το χχχ είναι το process ID του,
+    το όνομα όλων των χωρών (των subdirectories) που συμμετείχαν στην εφαρμογή με 
+    δεδομένα, το συνολικό αριθμό αιτημάτων που δέχθηκε για είσοδο στις χώρες, 
+    και το συνολικό αριθμό αιτημάτων που εγκρίθηκαν και απορρίφθηκαν.
 */
 
+   int status;
+   
 
-void distribute_subdirs(char * input_dir, int *fd, CountryHash countries, Hashtable citizens, struct List* virus_list){
+   for (int i = 0; i < numMonitors; i++)
+   {
+        waitpid(pids[i], &status, 0);
+        printf("PID: %d, status: %d\n",pids[i], status);
+        printf("WTERMSIG(status)= %d\n", WTERMSIG(status));
+   }
+   
+
+
+    printf("\nFinished with Pipes\n");
+    for (int i = 0; i < 2; i++)
+        for (int j = 0; j < numMonitors; j++) 
+            close(fd[i][j]);
+
+    
+    
+
+    
+
+    hashtable_destroyCoun(countries);
+    free(countries);
+
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+void distribute_subdirs(char * input_dir, int *fd, CountryHash countries){
 
     //READ FILES
-    DIR *maindr, *subdr;
-    struct dirent *dsub_dir, *dfiles;
+    DIR *maindr;
+    struct dirent *dsub_dir;
 
 
     //open directory input_dir
@@ -516,72 +482,34 @@ void distribute_subdirs(char * input_dir, int *fd, CountryHash countries, Hashta
             //put country in hashtable
             hashtable_addCoun(countries, dsub_dir->d_name);
 
-            //printf("    Opening Directory: %s\n", dsub_dir->d_name);
+            printf("    Opening Directory: %s\n", dsub_dir->d_name);
 
             char *path;
-            path = malloc(sizeof(char) * ( strlen(dsub_dir->d_name) + strlen(input_dir) + 2 ) );
+            //path = malloc(sizeof(char) * ( strlen(dsub_dir->d_name) + strlen(input_dir) + 2 ) );
+            path=malloc(bufferSize);
             strcpy(path, input_dir);
             strcat(path, "/");
             strcat(path, dsub_dir->d_name);
 
-            printf("File descriptor: fd[%d]=%d, subdirectory: %s\n", i, fd[i], path);
-            sent_message_wrong(fd[i], path);
+            //printf("File descriptor: fd[%d]=%d, subdirectory: %s\n", i, fd[i], path);
+            sent_message_wrong(fd[i], path, bufferSize);
 
             i = (i + 1) % numMonitors;
 
-            //printf("diretory to open: %s\n", path);
-/*
-            //open sub-directory
-            if ( (subdr = opendir(path)) == NULL ) { perror("Sub-Directory cannot open!"); exit(1); }
-
-                
-                
-            //for every file in the sub-directory
-            while ( (dfiles = readdir(subdr)) != NULL ){
-
-                if ( (strcmp(dfiles->d_name,".") != 0) && (strcmp(dfiles->d_name,"..") != 0) ){
-
-                    printf("        File: %s\n", dfiles->d_name);
-
-                    char *filepath;
-                    filepath = malloc(sizeof(char) * ( strlen(dfiles->d_name) + strlen(path) + 2 ) );         //+1 for the character '/'
-                    strcpy(filepath, path);
-                    strcat(filepath, "/");
-                    strcat(filepath, dfiles->d_name);
-
-                    //printf("file to open: %s\n", filepath);
-
-                    
-                    if ( read_file(filepath, citizens, &virus_list, countries, dsub_dir->d_name) == 0 ){
-                        printf("Successful reading of file %s!\n", dfiles->d_name);
-                    }
-                    
-
-                    free(filepath);
-
-                }
-
-
-            }
-                
-
-
-            closedir(subdr);
-*/
-//            free(path);
-
         }
 
-
-
     }
 
-
+    printf("\nFinished Distribution\n");
+    char *mes = malloc(bufferSize);
+    strcpy(mes, "DONE");
     for (int i = 0; i < numMonitors; i++)
     {
-        sent_message_wrong(fd[i], "DONE");
+       
+        sent_message_wrong(fd[i], mes, bufferSize);
+        
     }
-    
-
+    free(mes);
+    printf("Finished Sending DONE signal\n");
 
 }

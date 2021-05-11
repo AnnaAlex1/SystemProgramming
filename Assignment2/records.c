@@ -37,7 +37,6 @@ int read_file(char* filename, Hashtable ht, struct List** virus_list, CountryHas
 
     while( fgets(record, LINE_LEN, cit_file) != NULL){  //for every line
 
-        //printf("Record: %s\n", record);
 
         citizen.citizenID = strtok(record, " ");
         citizen.firstname = strtok(NULL, " ");
@@ -68,7 +67,7 @@ int read_file(char* filename, Hashtable ht, struct List** virus_list, CountryHas
         }
 
 
-
+        /*
         printf("id: %s\n", citizen.citizenID);
         printf("name: %s\n", citizen.firstname);
         printf("surname: %s\n", citizen.lastname);
@@ -77,8 +76,8 @@ int read_file(char* filename, Hashtable ht, struct List** virus_list, CountryHas
         printf("virus: %s\n", virus);
         printf("done: %d\n", done);
         printf("date: %s\n", date);
-        
-        
+        */        
+
         insert_record(ht, virus_list, countries ,citizen, virus, done, date, false);
         
         free(citizen.country);
@@ -96,7 +95,6 @@ int read_file(char* filename, Hashtable ht, struct List** virus_list, CountryHas
 
 
 void insert_record(Hashtable ht,  struct List** virus_list, CountryHash countries, struct Citizen citizen, char* virus, bool done, char* date, bool from_console){
-
     struct Citizen *fromHash;
 
     struct List* virlist_temp;
@@ -116,6 +114,7 @@ void insert_record(Hashtable ht,  struct List** virus_list, CountryHash countrie
         printf("ERROR IN RECORD:   %s\n", citizen.citizenID);
         return;
     }
+        
 
 
     //checking for this id in the Citizens hashtable
@@ -142,7 +141,7 @@ void insert_record(Hashtable ht,  struct List** virus_list, CountryHash countrie
 
         //put citizen in hashtable
         hashtable_add(ht, citizen);
-        
+
             
     }  
 
@@ -153,8 +152,9 @@ void insert_record(Hashtable ht,  struct List** virus_list, CountryHash countrie
     }
 
     virlist_temp = *virus_list;
+
     while ( virlist_temp != NULL){
-        
+ 
         if ( strcmp(virlist_temp->name, virus) == 0){
 
             if ( done ){    //"YES"
@@ -175,7 +175,6 @@ void insert_record(Hashtable ht,  struct List** virus_list, CountryHash countrie
                 strcpy(not_vac_elem->name, citizen.citizenID);
                 addNotVacSkipList( &(virlist_temp->not_vacc), not_vac_elem,  &(virlist_temp->levels_notvac));
             }
-
 
 
         }

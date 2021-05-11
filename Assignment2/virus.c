@@ -8,7 +8,7 @@
 
 void addinlist(struct List** virus_list, char* name){
 
-    //printf("Virus List: ADDING %s\n", name);
+    //printf("Virus List:  %s\n", name);
 
     struct List* newnode;
     newnode = malloc(sizeof(struct List));
@@ -47,6 +47,7 @@ void addinlist(struct List** virus_list, char* name){
         //place at the beginning:
         *virus_list = newnode;
         newnode->next = temp;
+        
     }
 
     return;

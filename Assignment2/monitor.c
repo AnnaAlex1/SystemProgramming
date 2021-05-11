@@ -10,72 +10,178 @@
 #include <signal.h>
 #include <errno.h>
 
-//char* get_message(int fd, ssize_t buffersize);
-char* get_message_wrong(int fd, ssize_t buffersize);
 
+#include "citizens.h"
+#include "virus.h"
+#include "countries.h"
+#include "records.h"
+#include "sh_pipes.h"
+#include "console.h"
+
+#include<sys/wait.h>
+
+
+#include "citizens.h"
+#include "countries.h"
+
+size_t buffersize =10000;
+
+extern int size_in_bytes;   //-s
+
+
+int store_records(int fd_r, char* pipename, Hashtable citizens, struct List** virus_list, CountryHash countries);
 
 int main(int argc, char* argv[]){
 
-    printf("Hello from Monitor with pipe %s!\n", argv[1]);
+    printf("Hello from Monitor pid:%d with pipe %s and %s!\n", getpid(), argv[1], argv[2]);
 
 
     //check for right number of arguments
-    if (argc != 2){
-        perror("Wrong number of arguments\n!");
+    if (argc != 3){
+        perror("Wrong number of arguments!");
     }
 
 
-    // OPEN NAMED PIPE
-    int fd = open(argv[1], O_RDONLY);
-    if ( fd < 0 ){
-        perror("ERROR: in opening Named Pipe (from Monitor)\n");
+    // OPEN NAMED PIPE FOR READING
+    int fd_r = open(argv[1], O_RDONLY);
+    if ( fd_r < 0 ){
+        perror("ERROR: in opening Named Pipe for Reading (from Monitor)");
         exit(1);
     }
 
+
+    // OPEN NAMED PIPE FOR  WRITING
+    int fd_w = open(argv[2], O_WRONLY);
+    if ( fd_w < 0 ){
+        perror("ERROR: in opening Named Pipe for Writing(from Monitor)");
+        exit(1);
+    }
+
+
+
+
+    ////////////////////////////////////////////
     //GET BUFFERSIZE    
     char *message;
-    message = get_message_wrong( fd, 10);         //get buffersize
+    message = get_message_wrong( fd_r, sizeof(long));         //get buffersize
     if ( strcmp(message, "error") == 0){
         exit(2);
     }
 
-    ssize_t buffersize;
 
     buffersize = atoi(message);
     printf("Buffersize: %ld\n", buffersize);
 
     free(message);
-    ///////////////////////////////////////????
 
+    ///////////////////////////////////////????
+    //GET BLOOMSIZE 
+    size_in_bytes = 10000;
+    message = get_message_wrong( fd_r,  sizeof(int));         //get buffersize
+    if ( strcmp(message, "error") == 0){
+        exit(2);
+    }
+
+    size_in_bytes = atoi(message);
+    printf("Bloomsize: %d\n", size_in_bytes);
+
+    free(message);
+    ////////////////////////////////////////////
+
+
+
+
+
+    //List of viruses
+    struct List* virus_list = NULL;
+
+    //Hashtable of citizens
+    Hashtable citizens;
+    citizens = hashtable_create();
+
+    //Hashtable of Countries
+    CountryHash countries;
+    countries = hashtable_createCoun();
 
 
 
     //ΑΡΧΙΚΟΠΟΙΗΣΗ: Αναμονή για χώρες
     //διαβάζει μέσω των named pipes τις χώρες που θα αναλάβει
-    while(1) {
-        message = get_message_wrong(fd, buffersize);
-        if ( strcmp(message, "DONE") != 0 ){
-            free(message);
-            break;
-        }
+    if ( store_records(fd_r, argv[1], citizens, &virus_list, countries) == -1 ){
+        perror("ERROR in storing records");
+        exit(1);
+    } 
 
-        printf("Monitor %s gets directory: %s\n", argv[1], message);
-        //memcpy();
-        free(message);
-        
 
+    //Αποστολή των Bloomfilter (για κάθε ίωση)
+    if (sent_bloomfilters(virus_list)){
+        perror("ERROR in sending bloomfilters");
+        exit(1);
     }
 
 
-    //Αναμονή για Bloomfilter
 
-    //printf("Hello from Monitor (from pipe) %s!\n", argv[1]);
+    //Αποστολή μηνύματος ετοιμότητας για αιτήματα
 
 
-    printf("\nHER77777777777777777777777777777777EEEE\n");
 
+    int total_requests = 0;
+    int accepted_req = 0;
+    int rejected_req = 0;
+
+    //Λήψη SIGINT/SIGQUIT
+        //Άνοιγμα αρχείου logfilexxx
+        //εκτύπωση χωρών
+        //εκτύπωση total_request
+        //εκτύπωση accepted
+        //εκτύπωση rejected
+
+    //Λήψη SIGUSR
+        //ΔΙΑΒΑΣΕ ΝΕΑ ΑΡΧΕΙΑ
+        //Γέμισε τις δομές
+        //Στείλε τα νέα bloomfilter στον parent
+
+
+
+
+
+
+
+
+    //////////////////////////////////////////////////
+
+    //PRINT STRUCTURES
+    /*printf("\n\nPRINT STRUCTURES: %s\n", argv[1]);
+    print_hashtable(citizens);
+    printlist(virus_list);
+    print_hashtableCoun(countries);*/
     
-    close(fd);
+    /*
+    //SIMULATION
+    printf("\n\nSIMULATION:\n");
+    console(&virus_list, citizens, countries);
+    */
+   
+    //PRINT STRUCTURES
+    /*printf("\n\nPRINT STRUCTURES:\n");
+    print_hashtable(citizens);
+    printlist(virus_list);
+    print_hashtableCoun(countries);*/
+
+
+    //RELEASE OF MEMORY
+    printf("\nRELEASE OF MEMORY.\n");
+    hashtable_destroyCoun(countries);
+    hashtable_destroy(citizens);
+    deletelist(&virus_list);
+    free(citizens);
+    free(countries);
+    citizens = NULL;
+    virus_list = NULL;
+/*  free(input_dir);*/
+    
+    close(fd_r);
+    close(fd_w);
 
 
     return 0;
@@ -83,74 +189,85 @@ int main(int argc, char* argv[]){
 
 
 
-char* get_message_wrong(int fd, ssize_t buffersize){
 
-    char *message = malloc( sizeof(char) * buffersize );
+int store_records(int fd_r, char* pipename, Hashtable citizens, struct List** virus_list, CountryHash countries){
 
-    int res = read( fd, message, 10000 );
-    if ( res < 0 ){
-        perror("ERROR: in reading from Named Pipe");
-        return "error";
-    }
-    
-    
-    printf("Message from buffer: %s\n", message);
-    fflush(stdout);
-    
-    return message;
-    
+    char *country_dir_name;
+    char *count_name;
 
-}
+    //READ FILES
+    DIR *subdr;
+    struct dirent *dfiles;
 
 
-
-
-/*
-char* get_message(int fd, ssize_t buffersize){
-
-
-    char *complete_mess;
-    char *message;
-    message = malloc( sizeof(char) * buffersize );
-
-    char *cur_mes = malloc( sizeof(char) * buffersize );
-    
-    int i = 0;
-    int res;
 
     while(1) {
-        printf("Read no %d\n", i);
-        res = read( fd, message, buffersize );
-        if ( res < 0 ){
-            perror("ERROR: in reading from Named Pipe");
-            return "error";
-        }
-       
-        printf("Message from buffer: %s\n", message);
 
+        //GET DIRECTORY
+        country_dir_name = get_message_wrong(fd_r, buffersize);
 
-        if ( i != 0){
-            cur_mes = realloc(cur_mes, sizeof(char)* ( (i+1)*buffersize) );
-        }
-        memcpy( cur_mes + i*buffersize, message, buffersize);
+        printf("Monitor with %s gets directory: %s\n", pipename, country_dir_name);
 
-        fflush(stdout);
-
-        if ( message[buffersize-1] == '\0' ){
+        //CHECK IF DONE
+        if ( strcmp(country_dir_name, "DONE") == 0 ){
+            printf("DONE\n");
+            free(country_dir_name);
             break;
         }
-        //if ( res == 0 ){
-        //    fflush(stdout);
-        //    break;
-        //}
-        i++;
+
+        //GET NAME OF COUNTRY
+        count_name = strchr( country_dir_name, '/' ); 
+
+        if ( count_name != NULL ){
+            count_name++;                   
+            printf( "The folder is : %s", count_name ); // For example print it to see the result
+        } else {
+            printf("Wrong Folder Name\n");
+        }
+
+        if ( (subdr = opendir(country_dir_name)) == NULL ) { perror("Sub-Directory cannot open!"); exit(1); }
+   
+        //FOR EVERY FILE in the directory
+        while ( (dfiles = readdir(subdr)) != NULL ){
+
+            if ( (strcmp(dfiles->d_name,".") != 0) && (strcmp(dfiles->d_name,"..") != 0) ){
+
+                printf("        File: %s\n", dfiles->d_name);
+
+                char *filepath;
+                filepath = malloc(sizeof(char) * ( strlen(dfiles->d_name) + strlen(country_dir_name) + 2 ) );         //+1 for the character '/'
+                strcpy(filepath, country_dir_name);
+                strcat(filepath, "/");
+                strcat(filepath, dfiles->d_name);
+
+                //printf("file to open: %s\n", filepath);
+
+                printf("READFILE: %s\n", filepath);
+                if ( read_file(filepath, citizens, virus_list, countries, count_name) == 0 ){
+                    printf("Successful reading of file %s!\n", dfiles->d_name);
+                } else {
+                    perror("ERROR: Unsuccessful Reading!");
+                    return -1;
+                }
+                
+
+                free(filepath);
+
+            }
+
+
+        }
+            
+
+
+        closedir(subdr);
+        free(country_dir_name);
+        
 
     }
 
-    complete_mess = malloc(sizeof(char) * (strlen(cur_mes)+1));
-    memcpy(complete_mess, cur_mes, strlen(cur_mes)+1);
 
-    printf("Complete Message: %s\n", complete_mess);
-    return complete_mess;
+    return 0;
+
+
 }
-*/
