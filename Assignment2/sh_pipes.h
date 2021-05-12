@@ -9,6 +9,8 @@ struct MonitorStruct{
     int fd_w;
     int fd_r;
     int pid;
+    char *fifoname_w;
+    char *fifoname_r;
     struct VirusesListMain *viruses;
 };
 

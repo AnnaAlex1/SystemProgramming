@@ -6,6 +6,7 @@
 #include "citizens.h"
 #include "records.h"
 #include "countries.h"
+#include "sh_pipes.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,7 +15,7 @@
 #include <time.h> 
 
 
-void console(struct List** VirusList, Hashtable citizens, CountryHash countries){
+void console( struct MonitorStruct *commun, CountryMainHash countries){
 
     char input[300];
     char *arg;
@@ -33,7 +34,8 @@ void console(struct List** VirusList, Hashtable citizens, CountryHash countries)
 
         //EXIT
         if ( strcmp( strtok(input, "\n"), "/exit") == 0){
-
+            
+            return;
         /*
             Έξοδος από την εφαρμογή. Το parent process στέλνει ένα SIGKILL 
             σήμα στους Monitors, τους περιμένει να τερματίσουν, και τυπώνει 

@@ -17,6 +17,7 @@
 #include "records.h"
 #include "sh_pipes.h"
 #include "console.h"
+#include "signal_handl.h"
 
 #include<sys/wait.h>
 
@@ -27,9 +28,16 @@
 size_t buffersize =10000;
 
 extern int size_in_bytes;   //-s
+extern int signal_num;
 
 
 int store_records(int fd_r, char* pipename, Hashtable citizens, struct List** virus_list, CountryHash countries);
+void monitor_body();
+
+
+
+
+
 
 int main(int argc, char* argv[]){
 
@@ -122,27 +130,37 @@ int main(int argc, char* argv[]){
 
 
     //Αποστολή μηνύματος ετοιμότητας για αιτήματα
+    sent_message_wrong(fd_w, "READY", buffersize);
 
 
-
-    int total_requests = 0;
+    /*int total_requests = 0;
     int accepted_req = 0;
-    int rejected_req = 0;
-
-    //Λήψη SIGINT/SIGQUIT
-        //Άνοιγμα αρχείου logfilexxx
-        //εκτύπωση χωρών
-        //εκτύπωση total_request
-        //εκτύπωση accepted
-        //εκτύπωση rejected
-
-    //Λήψη SIGUSR
-        //ΔΙΑΒΑΣΕ ΝΕΑ ΑΡΧΕΙΑ
-        //Γέμισε τις δομές
-        //Στείλε τα νέα bloomfilter στον parent
+    int rejected_req = 0;*/
 
 
+    ////////////////////////////////
+    //SIGNAL HANDLING
 
+    static struct sigaction sa1;        //SIGINT   CNTR+C
+    static struct sigaction sa2;        //SIGQUIT    Ctrl + \ or Ctrl + Y
+    static struct sigaction sa3;        //SIGUSR1      kill -s USR1 pid
+
+    sa1.sa_handler = handle_MonitorFin;
+    sigfillset (&(sa1.sa_mask));
+    //sigaction(SIGINT , &sa1 , NULL);
+
+    sa2.sa_handler = handle_MonitorFin;
+    sigfillset (&(sa2.sa_mask));
+    sigaction(SIGQUIT , &sa2 , NULL);
+
+    sa3.sa_handler = handle_newfiles;
+    sigfillset (&(sa3.sa_mask));
+    sigaction(SIGUSR1 , &sa3 , NULL);
+    
+    
+    //////////////////////////////////
+    //MAIN FUNCTION OF MONITORS
+    monitor_body(citizens, &virus_list, countries);
 
 
 
@@ -190,6 +208,9 @@ int main(int argc, char* argv[]){
 
 
 
+
+
+
 int store_records(int fd_r, char* pipename, Hashtable citizens, struct List** virus_list, CountryHash countries){
 
     char *country_dir_name;
@@ -199,7 +220,7 @@ int store_records(int fd_r, char* pipename, Hashtable citizens, struct List** vi
     DIR *subdr;
     struct dirent *dfiles;
 
-
+    int num_of_files = 0;
 
     while(1) {
 
@@ -223,7 +244,16 @@ int store_records(int fd_r, char* pipename, Hashtable citizens, struct List** vi
             printf( "The folder is: %s\n", count_name ); // For example print it to see the result
         } else {
             printf("Wrong Folder Name\n");
+            return -1;
         }
+
+
+
+        hashtable_addCoun(countries, count_name);   //add country to hashtable
+        
+        
+        
+        num_of_files = 0;   //keep count of files for this country
 
         if ( (subdr = opendir(country_dir_name)) == NULL ) { perror("Sub-Directory cannot open!"); exit(1); }
    
@@ -233,6 +263,9 @@ int store_records(int fd_r, char* pipename, Hashtable citizens, struct List** vi
             if ( (strcmp(dfiles->d_name,".") != 0) && (strcmp(dfiles->d_name,"..") != 0) ){
 
                 printf("        File: %s\n", dfiles->d_name);
+
+                num_of_files++;
+
 
                 char *filepath;
                 filepath = malloc(sizeof(char) * ( strlen(dfiles->d_name) + strlen(country_dir_name) + 2 ) );         //+1 for the character '/'
@@ -258,15 +291,219 @@ int store_records(int fd_r, char* pipename, Hashtable citizens, struct List** vi
 
         }
             
+        set_num_of_files(countries, count_name, num_of_files);
 
+        printf("NUM OF FILES FOR %s IS: %d\n", count_name, num_of_files);
 
         closedir(subdr);
         free(country_dir_name);
+        //free(count_name);
         
 
     }
 
 
+    return 0;
+
+
+}
+
+
+
+
+
+
+void monitor_body(Hashtable citizens, struct List **viruslist, CountryHash countries){
+
+
+    while( 1 ){
+
+
+        if ( signal_num == 2){      //GOT A SIGUSR1 SIGNAL
+
+            printf("IN BODY: SIGUSR1\n");
+            
+            //Λήψη SIGUSR
+            //ΔΙΑΒΑΣΕ ΝΕΑ ΑΡΧΕΙΑ
+            //Γέμισε τις δομές
+            //Στείλε τα νέα bloomfilter στον parent
+
+            if ( read_new_files(citizens, viruslist, countries) == -1){
+                printf("ERROR in Reading new Files\n");
+
+            }
+
+            
+            signal_num = 0;
+
+        } else if ( signal_num == 3 ){      //GOT A SIGINT/SIGQUIT SIGNAL
+
+            printf("IN BODY: SIGKILL/SIGQUIT\n");
+            
+            
+            signal_num = 0;
+            return;
+
+        } else {
+
+
+
+
+
+
+
+
+
+        }
+        
+
+
+
+
+    }
+
+
+
+}
+
+
+
+
+int read_new_files(Hashtable citizens, struct List** virus_list, CountryHash countries){
+
+    //char *country_dir_name;
+    //char *count_name;
+    char* foldername;
+
+    //READ FILES
+    DIR *subdr;
+    struct dirent *dfiles;
+
+    int num_of_files = 0;
+
+
+
+    //FOR EVERY COUNTRY
+    struct Country* country_str;
+
+    if (countries == NULL){
+        printf("Hashtable is Empty!\n");
+        return -1;
+    }
+
+    struct BucketCoun* current_buc;
+
+    for (int i = 0; i < TABLE_SIZE; i++)
+    {   
+        current_buc = countries[i].bucket;
+
+        while ( current_buc != NULL){
+
+            for (int j = 0; j < BUC_SIZE; j++){
+                if (current_buc->element[j].name != NULL){
+
+                    country_str = &(current_buc->element[j]);
+
+                    //Find country's folder name
+                    foldername = malloc( sizeof(char) * ( strlen("inputfolder") + strlen(country_str->name) + 2 ));
+
+                    strcpy(foldername, "inputfolder");
+                    strcat(foldername, "/");
+                    strcat(foldername, country_str->name);
+
+                    printf("FOLDER NAME: %s\n", foldername);
+
+
+                    if ( (subdr = opendir(foldername)) == NULL ) { perror("Sub-Directory cannot open!"); exit(1); }
+   
+
+
+                    closedir(subdr);
+
+
+
+
+
+
+
+
+
+                }
+            }
+            
+            current_buc = current_buc->next_buc;  
+
+        }
+    
+           
+    } 
+
+/*
+
+        //GET NAME OF COUNTRY
+        count_name = strchr( country_dir_name, '/' ); 
+
+        if ( count_name != NULL ){
+            count_name++;                   
+            printf( "The folder is: %s\n", count_name ); // For example print it to see the result
+        } else {
+            printf("Wrong Folder Name\n");
+            return -1;
+        }
+
+
+
+        hashtable_addCoun(countries, count_name);   //add country to hashtable
+        
+        
+        
+        num_of_files = 0;   //keep count of files for this country
+
+        if ( (subdr = opendir(country_dir_name)) == NULL ) { perror("Sub-Directory cannot open!"); exit(1); }
+   
+        //FOR EVERY FILE in the directory
+        while ( (dfiles = readdir(subdr)) != NULL ){
+
+            if ( (strcmp(dfiles->d_name,".") != 0) && (strcmp(dfiles->d_name,"..") != 0) ){
+
+                printf("        File: %s\n", dfiles->d_name);
+
+                num_of_files++;
+
+
+                char *filepath;
+                filepath = malloc(sizeof(char) * ( strlen(dfiles->d_name) + strlen(country_dir_name) + 2 ) );         //+1 for the character '/'
+                strcpy(filepath, country_dir_name);
+                strcat(filepath, "/");
+                strcat(filepath, dfiles->d_name);
+
+                //printf("file to open: %s\n", filepath);
+
+                printf("READFILE: %s\n", filepath);
+                if ( read_file(filepath, citizens, virus_list, countries, count_name) == 0 ){
+                    printf("Successful reading of file %s!\n", dfiles->d_name);
+                } else {
+                    perror("ERROR: Unsuccessful Reading!");
+                    return -1;
+                }
+                
+
+                free(filepath);
+
+            }
+
+
+        }
+            
+        set_num_of_files(countries, count_name, num_of_files);
+
+        printf("NUM OF FILES FOR %s IS: %d\n", count_name, num_of_files);
+
+        closedir(subdr);
+        free(country_dir_name);
+        //free(count_name);
+        
+*/
     return 0;
 
 

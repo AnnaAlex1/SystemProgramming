@@ -75,7 +75,7 @@ struct BucketCoun* bucket_createCoun(){
 
     for (int i = 0; i < BUC_SIZE; i++){
         new_Bucket->element[i].name = NULL;
-        new_Bucket->element[i].population = 0;
+        new_Bucket->element[i].num_of_files_read = 0;
     }
     
 
@@ -93,7 +93,7 @@ void hashtable_addCoun(CountryHash ht, char* coun_name){
     new_coun = malloc(sizeof(struct Country));
     new_coun->name = malloc(sizeof(char) * (strlen(coun_name)+1));
     strcpy(new_coun->name, coun_name);
-    new_coun->population = 0;
+    new_coun->num_of_files_read = 0;
     
 
     int pos = hashfunction(coun_name);  //get row to be put
@@ -220,6 +220,49 @@ struct Country* hashtable_getCoun(CountryHash ht, char* country_name){
 
 
 
+void set_num_of_files(CountryHash ht, char* country_name, int num_of_files){
+
+    if (ht == NULL){
+        printf("Hashtable is Empty!\n");
+        return;
+    }
+
+    int pos = hashfunction(country_name);
+
+    struct BucketCoun* bucket = ht[pos].bucket;
+
+    if (ht[pos].bucket == NULL){
+        return;
+    } else {
+
+        bucket = ht[pos].bucket;
+        while (bucket != NULL){
+
+            for (int i = 0; i < BUC_SIZE; i++)
+            {
+                if (bucket->element[i].name != NULL){    //if position is not empty
+
+                    if ( strcmp(bucket->element[i].name, country_name ) == 0 ){    //if found
+                        bucket->element[i].num_of_files_read = num_of_files;
+                    }
+
+                }
+            }
+            
+
+
+            bucket = bucket->next_buc;
+        }
+
+    }
+
+
+    return; 
+
+
+}
+
+
 
 
 void print_hashtableCoun(CountryHash ht){
@@ -263,7 +306,7 @@ void print_hashtableCoun(CountryHash ht){
 
 void print_country(struct Country coun){
 
-    printf("%s  %d\n", coun.name, coun.population);
+    printf("%s  %d\n", coun.name, coun.num_of_files_read);
 }
 
 ///////////////////////////////////////////////////////////////////////////

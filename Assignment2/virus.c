@@ -156,11 +156,9 @@ void addinVirMain(struct VirusesListMain** virus_list, char* name, unsigned int 
     newnode->name = malloc(sizeof(char)* (strlen(name)+1));
     memcpy(newnode->name, name, sizeof(char)* (strlen(name)+1) );
     newnode->vacc_bloom = init_Bloom();
-    memcpy(&(newnode->vacc_bloom->array), bloom, (newnode->vacc_bloom->num_of_pos)*sizeof(int));
+    memcpy(newnode->vacc_bloom->array, bloom, (newnode->vacc_bloom->num_of_pos)*sizeof(int));
     
     newnode->next = NULL;
-
-    printf("HEREEEEEEEEEEEEEEEEEEEEEEEEEEE\n");
 
     struct VirusesListMain* temp;
 

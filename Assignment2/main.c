@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <errno.h>
 
+#include "signal_handl.h"
 #include "records.h"
 #include "sh_pipes.h"
 #include "citizens.h"
@@ -320,7 +321,8 @@ int main( int argc, char *argv[]){
             }
         }
 
-
+        commun[i].fifoname_w = malloc( sizeof(char) * (strlen(extw_pname)+1));
+        strcpy(commun[i].fifoname_w, extw_pname);
 
 
 
@@ -343,6 +345,8 @@ int main( int argc, char *argv[]){
             }
         }
 
+        commun[i].fifoname_r = malloc( sizeof(char) * (strlen(extr_pname)+1));
+        strcpy(commun[i].fifoname_r, extr_pname);
 
 
 
@@ -409,24 +413,52 @@ int main( int argc, char *argv[]){
 
 
     //ΛΗΨΗ ΜΗΝΥΜΑΤΟΣ ΕΤΟΙΜΟΤΗΤΑΣ
+    char *ready = NULL;
+    for (int i = 0; i < numMonitors; i++){
 
-    // ΣΗΜΑ SIGCHLD
-    /* ΑΝ ΕΝΑ ΜΟΝΙΤΟΡ ΣΤΑΜΑΤΗΣΕΙ ΞΑΦΙΝΚΑ 
-    θα πρέπει το parent process να κάνει fork νέο Monitor 
-    process που θα το αντικαταστήσει.
-    */
+        /*if ( ready != NULL ){
+            
+            do{
+                ready = get_message_wrong(commun[i].fd_r, bufferSize);
+
+            } while ( strcmp(ready, "READY") != 0 );
+
+
+        }*/
+
+        ready = get_message_wrong(commun[i].fd_r, bufferSize);
+        if ( strcmp(ready, "READY") != 0 ){
+            printf("Something Went Wrong!\n");
+        } else {
+            printf("Monitor %d is ready!\n", commun[i].pid);
+        }
+        
+    }
     
 
-    /*ΣΗΜΑ SIGINT ή SIGQUIT
+    static struct sigaction sa1;        //SIGINT   Ctrl+C
+    static struct sigaction sa2;        //SIGQUIT   Ctrl + \ ///
+    static struct sigaction sa3;        //SIGCHLD   kill -s CHLD pid
 
-    πρώτα να τελειώσει την επεξεργασία της τρέχουσας εντολής από το χρήστη 
-    Και αφού έχει απαντήσει στο χρήστη, θα στέλνει ένα SIGKILL σήμα στους Monitors, 
-    θα τους περιμένει να τερματίσουν, και στο τέλος 
-    θα τυπώνει σε ένα αρχείο με ονομασία log_file.χχχ όπου το χχχ είναι το process ID του,
-    το όνομα όλων των χωρών (των subdirectories) που συμμετείχαν στην εφαρμογή με 
-    δεδομένα, το συνολικό αριθμό αιτημάτων που δέχθηκε για είσοδο στις χώρες, 
-    και το συνολικό αριθμό αιτημάτων που εγκρίθηκαν και απορρίφθηκαν.
-*/
+    sa1.sa_handler = handle_ParentFin;
+    sigfillset (&(sa1.sa_mask));
+    //sigaction(SIGINT , &sa1 , NULL);
+
+    sa2.sa_handler = handle_ParentFin;
+    sigfillset (&(sa2.sa_mask));
+    sigaction(SIGQUIT , &sa2 , NULL);
+
+    sa3.sa_handler = handle_recreate;
+    sigfillset (&(sa3.sa_mask));
+    sigaction(SIGCHLD , &sa3 , NULL);
+
+
+    ////////////////////////////////////
+    //CONSOLE
+    console(commun, countries);
+
+
+    //SIGPROCMASK ΚΑΤΑ ΤΗΝ ΑΠΟΣΤΟΛΗ ΔΕΔΟΜΕΝΩΝ -> ΜΠΛΟΚΑΡΙΣΜΑ ΜΗΝΥΜΑΤΩΝ
 
    int status;
    
@@ -445,8 +477,15 @@ int main( int argc, char *argv[]){
     for (int i = 0; i < numMonitors; i++) {
         close(commun[i].fd_w);
         close(commun[i].fd_r);
+        unlink(commun[i].fifoname_w);
+        unlink(commun[i].fifoname_r);
+
+        free(commun[i].fifoname_w);
+        free(commun[i].fifoname_r);
+
+        //deleteVirMain(&(commun[i].viruses));
     }
-        
+    
 
     
     

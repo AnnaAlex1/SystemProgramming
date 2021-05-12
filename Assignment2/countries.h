@@ -4,7 +4,7 @@
 
 struct Country{
     char *name;
-    int population; 
+    int num_of_files_read; 
 
 };
 
@@ -29,6 +29,7 @@ struct BucketCoun* bucket_createCoun();
 void hashtable_addCoun(CountryHash ht, char* coun_name);
 int hashtable_findCoun(CountryHash ht, char* country_name);
 struct Country* hashtable_getCoun(CountryHash ht, char* country_name);
+void set_num_of_files(CountryHash ht, char* country_name, int num_of_files);
 void hashtable_destroyCoun(CountryHash ht);
 void print_hashtableCoun(CountryHash ht);
 void print_country(struct Country coun);
