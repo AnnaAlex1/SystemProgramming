@@ -13,7 +13,7 @@
 
 
 
-int read_file(char* filename, Hashtable ht, struct List** virus_list, CountryHash countries, char *country){
+int read_file(char* filename, Hashtable ht, struct List** virus_list, char *country){
 
     FILE* cit_file;
 
@@ -78,7 +78,7 @@ int read_file(char* filename, Hashtable ht, struct List** virus_list, CountryHas
         printf("date: %s\n", date);
         */        
 
-        insert_record(ht, virus_list, countries ,citizen, virus, done, date, false);
+        insert_record(ht, virus_list, citizen, virus, done, date, false);
         
         free(citizen.country);
 
@@ -94,7 +94,7 @@ int read_file(char* filename, Hashtable ht, struct List** virus_list, CountryHas
 
 
 
-void insert_record(Hashtable ht,  struct List** virus_list, CountryHash countries, struct Citizen citizen, char* virus, bool done, char* date, bool from_console){
+void insert_record(Hashtable ht,  struct List** virus_list, struct Citizen citizen, char* virus, bool done, char* date, bool from_console){
     struct Citizen *fromHash;
 
     struct List* virlist_temp;

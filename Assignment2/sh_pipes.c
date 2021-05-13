@@ -17,8 +17,120 @@
 
 
 extern int size_in_bytes;
+extern struct MonitorStruct *commun;
+extern size_t bufferSize;
+int numMonitors;
 
 
+
+void create_child(int i){
+    
+    //Δημιουργία named pipes
+    char w_pname[] = "pipes/wfifo";
+    char r_pname[] = "pipes/rfifo";
+    char *extw_pname;
+    char *extr_pname;
+    char number[5];
+
+
+
+    //PIPE FOR WRITING
+    
+    //BUILD PIPE NAME
+    sprintf(number, "%d", i);        //convert counter to string
+    extw_pname = malloc( sizeof(char) * ( strlen(w_pname) + strlen(number) + 1) );
+    strcpy(extw_pname, w_pname);
+    strcat(extw_pname, number);       //add counter at the end of string
+    printf("Name: %s\n", extw_pname);
+
+
+    //CREATE NAMED PIPE FOR WRITING
+    if ( mkfifo( extw_pname, 0666) == -1){
+                    
+        if ( errno != EEXIST ){
+            perror("ERROR: creating Named Pipe");
+            exit(1);
+        }
+    }
+
+    commun[i].fifoname_w = malloc( sizeof(char) * (strlen(extw_pname)+1));
+    strcpy(commun[i].fifoname_w, extw_pname);
+
+
+
+    //PIPE FOR READING
+
+    //BUILD PIPE NAME
+    extr_pname = malloc( sizeof(char) * ( strlen(r_pname) + strlen(number) + 1) );
+    strcpy(extr_pname, r_pname);
+    strcat(extr_pname, number);       //add counter at the end of string
+    printf("Name: %s\n", extr_pname);
+
+
+
+    //CREATE NAMED PIPE FOR WRITING
+    if ( mkfifo( extr_pname, 0666) == -1){
+                    
+        if ( errno != EEXIST ){
+            perror("ERROR: creating Named Pipe");
+            exit(6);
+        }
+    }
+
+    commun[i].fifoname_r = malloc( sizeof(char) * (strlen(extr_pname)+1));
+    strcpy(commun[i].fifoname_r, extr_pname);
+
+
+
+
+    //FORK CHILD PROCESS
+    commun[i].pid = fork();
+
+    if ( commun[i].pid == -1 ){
+        perror("ERROR: in fork");
+        exit(1);
+    }
+
+    if ( commun[i].pid == 0 ){
+        //this is a child process
+
+        char *args[] = {"./monitor", extw_pname, extr_pname, NULL};
+
+        //execute Monitor Process
+        if (execv(args[0], args)){
+            perror("ERROR: in exec");
+            exit(1);
+        }
+    }
+
+
+    commun[i].fd_w = open(extw_pname, O_WRONLY);
+    if ( commun[i].fd_w < 0 ){
+        perror("ERROR: in opening Named Pipe (from Monitor)");
+        exit(1);
+    }
+
+    commun[i].fd_r = open(extr_pname, O_RDONLY);
+    if ( commun[i].fd_r < 0 ){
+        perror("ERROR: in opening Named Pipe (from Monitor)");
+        exit(1);
+    }
+
+
+
+    char mes_to_sent[sizeof(long)];
+    sprintf(mes_to_sent, "%ld", bufferSize);
+
+    sent_message_wrong(commun[i].fd_w, mes_to_sent, sizeof(long));
+
+    sprintf(mes_to_sent, "%d", size_in_bytes);
+    sent_message_wrong(commun[i].fd_w, mes_to_sent, sizeof(int));
+
+
+    free(extw_pname);
+    free(extr_pname);
+
+}
 
 
 char* get_message_wrong(int fd, size_t buffersize){
@@ -32,7 +144,6 @@ char* get_message_wrong(int fd, size_t buffersize){
         perror("ERROR: in reading from Named Pipe");
         return NULL;
     } else if ( res == 0 ){
-        //return "DONE";
         return "ending";
     }
     

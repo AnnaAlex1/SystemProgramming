@@ -13,15 +13,23 @@
 #include <string.h>
 #include <stdbool.h>
 #include <time.h> 
+#include <sys/wait.h>
+#include <unistd.h>
 
 
-void console( struct MonitorStruct *commun, CountryMainHash countries){
+extern int numMonitors;
+
+extern int signal_num;
+
+
+void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bufferSize){
 
     char input[300];
     char *arg;
 
-    struct List* virusNode = NULL;
     char *virusName;
+
+    int total_requests=0, accepted_req=0, rejected_req=0;
     
     while(1){
 
@@ -33,24 +41,62 @@ void console( struct MonitorStruct *commun, CountryMainHash countries){
         
 
         //EXIT
-        if ( strcmp( strtok(input, "\n"), "/exit") == 0){
+        if ( (strcmp( strtok(input, "\n"), "/exit") == 0) || signal_num == 4 ){               //EXIT
+
+            int status;
             
-            return;
-        /*
-            Έξοδος από την εφαρμογή. Το parent process στέλνει ένα SIGKILL 
-            σήμα στους Monitors, τους περιμένει να τερματίσουν, και τυπώνει 
-            σε ένα αρχείο με ονομασία log_file.χχχ όπου το χχχ είναι το 
-            process ID του, το όνομα όλων των χωρών (των subdirectories) 
-            που συμμετείχαν στην εφαρμογή με δεδομένα, το συνολικό αριθμό 
-            αιτημάτων που δέχθηκε για είσοδο στις χώρες, και το συνολικό αριθμό 
-            αιτημάτων που εγκρίθηκαν και απορρίφθηκαν. Πριν τερματίσει, θα 
-            απελευθερώνει σωστά όλη τη δεσμευμένη μνήμη.
-            Log file format (όπως και πιο πάνω):
+
+            //SEND SIGKILL TO MONITORS
+            for (int i=0; i<numMonitors; i++){
+                kill(commun[i].pid, SIGKILL);
+            }
+
+            //WAIT FOR ALL MONITORS TO TERMINATE
+            for (int i = 0; i < numMonitors; i++){
+                    waitpid(commun[i].pid, &status, 0);
+                    printf("PID: %d, status: %d\n",commun[i].pid, status);
+                    printf("WTERMSIG(status)= %d\n", WTERMSIG(status));
+                    printf("WIFEXITED(status)= %d\n", WIFEXITED(status));
+            }
             
-            Italy China Germany
-            TOTAL TRAVEL REQUESTS 883832 ACCEPTED 881818
-            REJECTED 2014
-        */
+
+
+            printf("\nFinished with Pipes\n");
+            
+            for (int i = 0; i < numMonitors; i++) {
+                close(commun[i].fd_w);
+                close(commun[i].fd_r);
+                unlink(commun[i].fifoname_w);
+                unlink(commun[i].fifoname_r);
+
+                free(commun[i].fifoname_w);
+                free(commun[i].fifoname_r);
+
+                //deleteVirMain(&(commun[i].viruses));
+            }
+            free(commun);
+
+    
+
+            int my_pid = getpid();
+            char pid_str[7];
+            sprintf(pid_str, "%d", my_pid);
+
+            char *filename = malloc( sizeof(char) * (strlen("logfiles/log_file.")+strlen(pid_str)+1) );
+            strcpy(filename, "logfiles/log_file.");
+            strcat(filename, pid_str);
+
+            FILE* logfile = fopen(filename, "w");
+            if ( logfile == NULL){
+                perror("ERROR in opening file 'LOGFILE'");
+                return;
+            }
+            print_hashtableCounMain(countries, logfile);
+
+            fprintf(logfile, "%d\n%d\n%d", total_requests, accepted_req, rejected_req);
+            
+
+
             return;
         }
 
@@ -58,13 +104,17 @@ void console( struct MonitorStruct *commun, CountryMainHash countries){
 
 
 
+
+
+
         //TRAVEL REQUEST
         if ( strcmp(arg, "/travelRequest") == 0){
 
+            
 
             //get arguments
             char *citizenID = strtok(NULL, " ");
-            char* date = strtok(NULL, "\n");
+            char *date = strtok(NULL, "\n");
             char *countryFrom= strtok(NULL, " ");
             char *countryTo = strtok(NULL, " ");            
             virusName = strtok(NULL, " ");
@@ -79,49 +129,72 @@ void console( struct MonitorStruct *commun, CountryMainHash countries){
                 }
 
 
-
-            // bloom filter = get from Monitor of Country
-
-            struct BloomFilter *vacc_bloom = init_Bloom();
-            VacSkipList vac_list = NULL;
-
-            if ( search_Bloom(*vacc_bloom, NUM_OF_HASHES, citizenID) == 1){
-
-                //ζητάει μέσω named pipe από το Monitor process που διαχειρίζεται 
-                //τη χώρα countryFrom αν όντως έχει εμβολιαστεί ο citizenID.
-                /*
-                Αν το bloom filter υποδεικνύει πως ο πολίτης citizenID ίσως έχει εμβολιαστεί κατά 
-                του virusName, η εφαρμογη  Το Monitor process απαντάει μέσω named pipe YES/NO 
-                όπου στη περίπτωση του YES, στέλνει και την ημερομηνία εμβολιασμού.  Η εφαρμογή 
-                ελέγχει αν έχει εμβολιαστεί ο πολίτης λιγότερο από 6 
-                μήνες πριν την επιθυμητή ημερομηνία ταξιδιού date και τυπώνει ένα από τα ακόλουθα 
-                μηνύματα
-
-                */
-
-            /*
-               char *date;
-
-               if ( getDate_VacSkipList(vac_list, citizenID) ){
-                    
-                   //check when vaccinated
-                   if ( in_last_6(date) ){      //vaccinated in last 6 months
-                        printf("REQUEST ACCEPTED – HAPPY TRAVELS\n");
-                   } else {
-                        printf("REQUEST REJECTED – YOU WILL NEED ANOTHER VACCINATION BEFORE TRAVEL DATE\n");
-                   }
-
-               } else { //not in vaccinated skip list
-                    printf("REQUEST REJECTED - YOU ARE NOT VACCINATED\n");
-               }
+            //FIND MONITOR THAT HANDLES COUNTRYFROM
+            struct CountryMain* cs = hashtable_getCounMain(countries, countryFrom);
+            
+            for (int i = 0; i < numMonitors; i++){
+                
+                if ( commun[i].pid == cs->pid ){    //found monitor that handled countryfrom
 
 
+                    //find virus struct
 
-            } else {    //not in the structure
-                printf("REQUEST REJECTED - YOU ARE NOT VACCINATED\n");
+                    struct VirusesListMain *vir_elem;
+                    vir_elem = getelemfromVirMain(commun[i].viruses, virusName);
+
+
+                    //check bloomfilter
+
+                    if ( search_Bloom(*(vir_elem->vacc_bloom), NUM_OF_HASHES, citizenID) == 0){//NOT IN THE STRUCTURE
+                        
+                        printf("REQUEST REJECTED - YOU ARE NOT VACCINATED\n");
+                        rejected_req++;
+                        
+                        
+                    } else {              //MAYBE IN THE STRUCTURE
+
+                        //sent_message(); the whole line?
+
+                        //get_message
+
+                        /*if ( strcmp(message, "YES") == 0){
+                            
+                            //get date
+                            if ( in_last_6(date) ){      //vaccinated in last 6 months
+                                    printf("REQUEST ACCEPTED – HAPPY TRAVELS\n");
+                            } else {
+                                    printf("REQUEST REJECTED – YOU WILL NEED ANOTHER VACCINATION BEFORE TRAVEL DATE\n");
+                            }
+
+                        } else if ( strcmp(message, "NO") == 0){
+                            
+                            printf("REQUEST REJECTED - YOU ARE NOT VACCINATED\n");
+                            rejected_req++;
+
+                        }*/
+
+
+
+                        //ζητάει μέσω named pipe από το Monitor process που διαχειρίζεται 
+                        //τη χώρα countryFrom αν όντως έχει εμβολιαστεί ο citizenID.
+                        /*
+                        Αν το bloom filter υποδεικνύει πως ο πολίτης citizenID ίσως έχει εμβολιαστεί κατά 
+                        του virusName, η εφαρμογη  Το Monitor process απαντάει μέσω named pipe YES/NO 
+                        όπου στη περίπτωση του YES, στέλνει και την ημερομηνία εμβολιασμού.  Η εφαρμογή 
+                        ελέγχει αν έχει εμβολιαστεί ο πολίτης λιγότερο από 6 
+                        μήνες πριν την επιθυμητή ημερομηνία ταξιδιού date και τυπώνει ένα από τα ακόλουθα 
+                        μηνύματα
+
+                        */
+
+                    }
+
+                }
+                
+
             }
-            */
-            }
+            
+
 
 
         //TRAVEL STATE
@@ -183,7 +256,25 @@ void console( struct MonitorStruct *commun, CountryMainHash countries){
             το σύνολο πολιτών που έχουν εμβολιαστεί           
             */
 
-            char *country = strtok(NULL, "\n");      
+            char *country = strtok(NULL, "\n");   
+
+
+            //FIND MONITOR THAT HANDLES COUNTRYFROM
+            struct CountryMain* cs = hashtable_getCounMain(countries, country);
+            
+            for (int i = 0; i < numMonitors; i++){
+                
+                if ( commun[i].pid == cs->pid ){    //found monitor that handled countryfrom
+
+                    kill(commun[i].pid, SIGUSR1);
+
+                }
+
+
+                //get_bloomfilters();
+            }
+
+            
 
 
 
@@ -202,10 +293,21 @@ void console( struct MonitorStruct *commun, CountryMainHash countries){
             COVID-19 VACCINATED ON 27-12-2020 H1N1 NOT YET VACCINATED
             */
 
-
             char *citizenID = strtok(NULL, "\n");      
 
+            for (int i = 0; i < numMonitors; i++){
+               sent_message_wrong(commun[i].fd_w, citizenID, bufferSize);
+            }
+
+            //get_message_wrong();
+            //get info
+            //get vaccinations
+            //print
+
+
+
         } 
+
 
 
 

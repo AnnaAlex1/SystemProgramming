@@ -7,7 +7,7 @@
 #include "countries.h"
 #include "sh_pipes.h"
 
-void console( struct MonitorStruct *commun, CountryMainHash countries);
+void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bufferSize);
 
 int datecmp(char* date1, char* date2);
 int in_last_six(char *date);

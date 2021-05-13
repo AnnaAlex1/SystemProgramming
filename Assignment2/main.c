@@ -23,7 +23,8 @@
 
 extern int size_in_bytes;   //-s
 size_t bufferSize = 10000;             //-b
-int numMonitors;    //-m 
+extern int numMonitors;    //-m 
+extern struct MonitorStruct *commun;
 
 void distribute_subdirs(char * input_dir, struct MonitorStruct *commun, CountryMainHash countries);
 
@@ -283,122 +284,19 @@ int main( int argc, char *argv[]){
 
 
     //Δημιουργία named pipes
-    char w_pname[] = "pipes/wfifo";
-    char r_pname[] = "pipes/rfifo";
-    char *extw_pname;
-    char *extr_pname;
-    char number[5];
 
-    //int fd[2][numMonitors];
-    //int pids[numMonitors];
-    struct MonitorStruct commun[numMonitors];
+    commun = malloc( sizeof(struct MonitorStruct)*numMonitors);
     for (int i = 0; i < numMonitors; i++){
         commun[i].viruses = NULL;
     }
     
-
-
     for (int i=0; i<numMonitors; i++){
 
-
-
-        //PIPE FOR WRITING
-       
-        //BUILD PIPE NAME
-        sprintf(number, "%d", i);        //convert counter to string
-        extw_pname = malloc( sizeof(char) * ( strlen(w_pname) + strlen(number) + 1) );
-        strcpy(extw_pname, w_pname);
-        strcat(extw_pname, number);       //add counter at the end of string
-        printf("Name: %s\n", extw_pname);
-
-
-        //CREATE NAMED PIPE FOR WRITING
-        if ( mkfifo( extw_pname, 0666) == -1){
-                        
-            if ( errno != EEXIST ){
-                perror("ERROR: creating Named Pipe");
-                exit(6);
-            }
-        }
-
-        commun[i].fifoname_w = malloc( sizeof(char) * (strlen(extw_pname)+1));
-        strcpy(commun[i].fifoname_w, extw_pname);
-
-
-
-        //PIPE FOR READING
- 
-        //BUILD PIPE NAME
-        extr_pname = malloc( sizeof(char) * ( strlen(r_pname) + strlen(number) + 1) );
-        strcpy(extr_pname, r_pname);
-        strcat(extr_pname, number);       //add counter at the end of string
-        printf("Name: %s\n", extr_pname);
-
-
-
-        //CREATE NAMED PIPE FOR WRITING
-        if ( mkfifo( extr_pname, 0666) == -1){
-                        
-            if ( errno != EEXIST ){
-                perror("ERROR: creating Named Pipe");
-                exit(6);
-            }
-        }
-
-        commun[i].fifoname_r = malloc( sizeof(char) * (strlen(extr_pname)+1));
-        strcpy(commun[i].fifoname_r, extr_pname);
-
-
-
-
-        //FORK CHILD PROCESS
-        commun[i].pid = fork();
-
-        if ( commun[i].pid == -1 ){
-            perror("ERROR: in fork");
-            exit(1);
-        }
-
-        if ( commun[i].pid == 0 ){
-            //this is a child process
-
-            char *args[] = {"./monitor", extw_pname, extr_pname, NULL};
-
-            //execute Monitor Process
-            if (execv(args[0], args)){
-                perror("ERROR: in exec");
-                exit(1);
-            }
-        }
-
-
-        commun[i].fd_w = open(extw_pname, O_WRONLY);
-        if ( commun[i].fd_w < 0 ){
-            perror("ERROR: in opening Named Pipe (from Monitor)");
-            exit(1);
-        }
-
-        commun[i].fd_r = open(extr_pname, O_RDONLY);
-        if ( commun[i].fd_r < 0 ){
-            perror("ERROR: in opening Named Pipe (from Monitor)");
-            exit(1);
-        }
-
-
-
-        char mes_to_sent[sizeof(long)];
-        sprintf(mes_to_sent, "%ld", bufferSize);
-
-        sent_message_wrong(commun[i].fd_w, mes_to_sent, sizeof(long));
-
-        sprintf(mes_to_sent, "%d", size_in_bytes);
-        sent_message_wrong(commun[i].fd_w, mes_to_sent, sizeof(int));
-
-
-        free(extw_pname);
-        free(extr_pname);
+        create_child(i);
 
     }
+
+
 
     printf("\nDistribution of folders:\n");
     distribute_subdirs(input_dir, commun, countries);
@@ -455,40 +353,12 @@ int main( int argc, char *argv[]){
 
     ////////////////////////////////////
     //CONSOLE
-    console(commun, countries);
+    console(commun, countries, bufferSize);
 
 
     //SIGPROCMASK ΚΑΤΑ ΤΗΝ ΑΠΟΣΤΟΛΗ ΔΕΔΟΜΕΝΩΝ -> ΜΠΛΟΚΑΡΙΣΜΑ ΜΗΝΥΜΑΤΩΝ
 
-   int status;
-   
-
-   for (int i = 0; i < numMonitors; i++){
-        waitpid(commun[i].pid, &status, 0);
-        printf("PID: %d, status: %d\n",commun[i].pid, status);
-        printf("WTERMSIG(status)= %d\n", WTERMSIG(status));
-        printf("WIFEXITED(status)= %d\n", WIFEXITED(status));
-   }
-   
-
-
-    printf("\nFinished with Pipes\n");
-    
-    for (int i = 0; i < numMonitors; i++) {
-        close(commun[i].fd_w);
-        close(commun[i].fd_r);
-        unlink(commun[i].fifoname_w);
-        unlink(commun[i].fifoname_r);
-
-        free(commun[i].fifoname_w);
-        free(commun[i].fifoname_r);
-
-        //deleteVirMain(&(commun[i].viruses));
-    }
-    
-
-    
-    
+ 
 
     
 
@@ -560,3 +430,6 @@ void distribute_subdirs(char * input_dir, struct MonitorStruct *commun, CountryM
     printf("Finished Sending DONE signal\n");
 
 }
+
+
+

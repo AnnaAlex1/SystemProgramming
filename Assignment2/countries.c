@@ -265,7 +265,7 @@ void set_num_of_files(CountryHash ht, char* country_name, int num_of_files){
 
 
 
-void print_hashtableCoun(CountryHash ht){
+void print_hashtableCoun(CountryHash ht, FILE* stream){
 
     printf("\n");
 
@@ -274,7 +274,6 @@ void print_hashtableCoun(CountryHash ht){
         return;
     }
 
-    printf("My Hashtable:\n");
     struct BucketCoun* current_buc;
 
     for (int i = 0; i < TABLE_SIZE; i++)
@@ -284,8 +283,17 @@ void print_hashtableCoun(CountryHash ht){
         while ( current_buc != NULL){
 
             for (int j = 0; j < BUC_SIZE; j++){
-                if (current_buc->element[j].name != NULL)
-                    print_country(current_buc->element[j]);
+                
+                if (current_buc->element[j].name != NULL){
+
+                    if (stream == NULL){
+                        fprintf(stdout, "%s\n", current_buc->element[j].name);
+                    } else {
+                        fprintf(stream, "%s\n", current_buc->element[j].name);
+                    }
+
+
+                }
             }
             
             
@@ -294,20 +302,13 @@ void print_hashtableCoun(CountryHash ht){
             
 
         }
-        //printf("\n");
            
     } 
-    printf("\n");
 }
 
 
 
 
-
-void print_country(struct Country coun){
-
-    printf("%s  %d\n", coun.name, coun.num_of_files_read);
-}
 
 ///////////////////////////////////////////////////////////////////////////
 
@@ -483,7 +484,7 @@ void hashtable_destroyCounMain(CountryMainHash ht){
 
 
 
-void print_hashtableCounMain(CountryMainHash ht){
+void print_hashtableCounMain(CountryMainHash ht, FILE* stream){
     
     printf("\n");
 
@@ -492,7 +493,6 @@ void print_hashtableCounMain(CountryMainHash ht){
         return;
     }
 
-    printf("Countries:\n");
     struct BucketCounMain* current_buc;
 
     for (int i = 0; i < TABLE_SIZE; i++)
@@ -502,8 +502,17 @@ void print_hashtableCounMain(CountryMainHash ht){
         while ( current_buc != NULL){
 
             for (int j = 0; j < BUC_SIZE; j++){
-                if (current_buc->element[j].name != NULL)
-                    print_countryMain(current_buc->element[j]);
+                
+                if (current_buc->element[j].name != NULL){
+
+                    if (stream == NULL){
+                        fprintf(stdout, "%s\n", current_buc->element[j].name);
+                    } else {
+                        fprintf(stream, "%s\n", current_buc->element[j].name);
+                    }
+
+
+                }
             }
             
             
@@ -512,15 +521,7 @@ void print_hashtableCounMain(CountryMainHash ht){
             
 
         }
-        //printf("\n");
            
     } 
-    printf("\n");
 }
 
-
-void print_countryMain(struct CountryMain coun){
-    
-    printf("%s in Monitor %d\n", coun.name, coun.pid);
- 
-}

@@ -1,24 +1,65 @@
 #include "signal_handl.h"
 #include "signal.h"
+#include "sh_pipes.h"
 
-
+#include <sys/wait.h>
 #include <stdio.h>
 
 
 int signal_num = 0;
+struct MonitorStruct *commun;
+extern int numMonitors; 
 
 
+
+
+
+//SIGNALS FOR PARENT PROCESS
 void handle_recreate(int sig){
 
     if ( signal_num == 0){      //if it's not used by another signal
         signal_num = 1;
     }
     //SIGCHLD - Parent
+    pid_t child_pid = wait(NULL);
+    printf("Child with pid: %d was terminated\n", child_pid);
+
+    for (int i = 0; i < numMonitors; i++){
+        
+        if (commun[i].pid == child_pid){
+            
+            create_child(i);
+        }
+
+    }
+    
 
     printf("Fork new Monitor Process\n");
 
+    signal_num = 0;
+
 }
 
+
+
+void handle_ParentFin(int sig){                 //Parent
+
+    if ( signal_num == 0){      //if it's not used by another signal
+        signal_num = 4;
+    }
+
+
+    
+
+    printf("Printing log_file from Parent\n");
+
+}
+
+
+
+
+
+//SIGNALS FOR MONITORS
 
 void handle_newfiles(int sig){
 
@@ -52,15 +93,7 @@ void handle_MonitorFin(int sig){
 }
 
 
-void handle_ParentFin(int sig){                 //Parent
 
-    if ( signal_num == 0){      //if it's not used by another signal
-        signal_num = 4;
-    }
-
-    printf("Printing log_file from Parent\n");
-
-}
 
 
 

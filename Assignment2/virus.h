@@ -29,7 +29,7 @@ void printlist(struct List* virus_list);
 
 ///////////////////////////////////////////////////
 
-struct VirusesListMain {
+struct VirusesListMain{
     char* name;
     struct BloomFilter* vacc_bloom;
     struct VirusesListMain* next;
