@@ -7,6 +7,7 @@
 #include "records.h"
 #include "countries.h"
 #include "sh_pipes.h"
+#include "requests.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +31,12 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
     char *virusName;
 
     int total_requests=0, accepted_req=0, rejected_req=0;
+    int approved = 0;
     
+    struct RequestsList *req_list = NULL;
+
+
+
     while(1){
 
         printf("\nPlease give instructions\n");
@@ -60,9 +66,10 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
             }
             
 
+            
+            //RELEASE SOURCES
 
             printf("\nFinished with Pipes\n");
-            
             for (int i = 0; i < numMonitors; i++) {
                 close(commun[i].fd_w);
                 close(commun[i].fd_r);
@@ -77,7 +84,7 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
             free(commun);
 
     
-
+            //PRINT LOGFILE
             int my_pid = getpid();
             char pid_str[7];
             sprintf(pid_str, "%d", my_pid);
@@ -96,13 +103,14 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
             fprintf(logfile, "%d\n%d\n%d", total_requests, accepted_req, rejected_req);
             
 
+            //FREE MEMORY
+            deleteReqlist(&req_list);
 
             return;
         }
 
+        
         arg = strtok(input, " ");
-
-
 
 
 
@@ -128,6 +136,8 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
                     continue;
                 }
 
+            
+
 
             //FIND MONITOR THAT HANDLES COUNTRYFROM
             struct CountryMain* cs = hashtable_getCounMain(countries, countryFrom);
@@ -148,6 +158,7 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
                     if ( search_Bloom(*(vir_elem->vacc_bloom), NUM_OF_HASHES, citizenID) == 0){//NOT IN THE STRUCTURE
                         
                         printf("REQUEST REJECTED - YOU ARE NOT VACCINATED\n");
+                        approved = 0;
                         rejected_req++;
                         
                         
@@ -162,13 +173,16 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
                             //get date
                             if ( in_last_6(date) ){      //vaccinated in last 6 months
                                     printf("REQUEST ACCEPTED – HAPPY TRAVELS\n");
+                                    approved = 1;
                             } else {
                                     printf("REQUEST REJECTED – YOU WILL NEED ANOTHER VACCINATION BEFORE TRAVEL DATE\n");
+                                    approved = 0;
                             }
 
                         } else if ( strcmp(message, "NO") == 0){
                             
                             printf("REQUEST REJECTED - YOU ARE NOT VACCINATED\n");
+                            approved = 0;
                             rejected_req++;
 
                         }*/
@@ -195,7 +209,8 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
             }
             
 
-
+            //ADD REQUEST TO LIST
+            addRequest(&req_list, virusName, date, countryTo, approved);
 
         //TRAVEL STATE
         } else if ( strcmp(arg, "/travelStats") == 0){
@@ -214,32 +229,12 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
                 continue;
             }
 
-
-            if ( country == NULL ){     //country not given
-            printf(" Country Not Given\n");
-                /*
-                    αριθμός πολιτών που έχουν ζητήσει έγκριση να ταξιδέψουν μεσα 
-                    στο διαστημα [date1...date2] σε χώρες που ελέγχουν για εμβολιασμό 
-                    κατά του virusName, και τον αριθμο πολιτών που εγκρίθηκαν και που 
-                    απορρίφθηκαν. 
-                */
-
-            } else {        //country given
-
-                printf("Country Given\n");
-                /*
-                    ίδια πληροφορία αλλά μόνο για τη συγκεκριμένη χώρα country. 
-                */
-
-                /*
-            
-                Output format: Παράδειγμα:
-                TOTAL REQUESTS 29150
-                ACCEPTED 25663
-                REJECTED 3487
-                */
-
+            if ( country == NULL ){
+                travel_stat_all(req_list, countries, virusName, date1, date2);
+            } else {
+                travel_stat_one(req_list, virusName, date1, date2, country);
             }
+
 
 
 
@@ -321,6 +316,83 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
 
 
 
+void travel_stat_all(struct RequestsList *req, CountryMainHash countries, char *virus, char* date1, char* date2){
+
+    if (countries == NULL){
+        printf("No Countries -> No Requests!\n");
+        return;
+    }
+
+    struct BucketCounMain* current_buc;
+
+    for (int i = 0; i < TABLE_SIZE; i++)
+    {   
+        current_buc = countries[i].bucket;
+
+        while ( current_buc != NULL){
+
+            for (int j = 0; j < BUC_SIZE; j++){
+                
+                if (current_buc->element[j].name != NULL){
+
+                    travel_stat_one(req, virus, date1, date2, current_buc->element[j].name);
+
+                }
+            }
+            
+            
+            current_buc = current_buc->next_buc;
+
+            
+
+        }
+           
+    }
+}
+
+
+
+
+void travel_stat_one(struct RequestsList *req, char *virus, char* date1, char* date2, char* country){
+
+    int num_of_req = 0;
+    int approved = 0, rejected = 0;
+
+
+    while( req != NULL){
+
+        //if citizen is from this Country and for this virus
+        if ( strcmp(virus, req->virus) == 0 && strcmp(req->country, country) == 0 ){  
+
+            //if it's between [date1, date2]
+            if ( datecmp(date1, req->date) != -1 && datecmp(req->date, date2) != -1){
+
+                if (req->approved == 1){
+                    approved++;
+                } else {
+                    rejected++;
+                }
+
+                num_of_req++;
+            }
+
+        }
+
+        req = req->next;
+    }
+
+    
+    printf("TOTAL REQUESTS: %d\n", num_of_req);
+    printf("ACCEPTED: %d\n", approved);
+    printf("REJECTED: %d\n", rejected);
+
+
+}
+
+
+
+
+
 
 
 
@@ -331,52 +403,52 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
 
 int datecmp(char* date1, char* date2){
 
-    char vac_date[12];
-    strcpy(vac_date, date1);
+    char firstdate[12];
+    strcpy(firstdate, date1);
     char cur_date[12];
     strcpy(cur_date, date2);
 
 
 
-    int day_vac = atoi(strtok(vac_date, "-"));
-    int month_vac = atoi(strtok(NULL, "-"));
-    int year_vac = atoi(strtok(NULL, "\0"));
+    int day_first = atoi(strtok(firstdate, "-"));
+    int month_first = atoi(strtok(NULL, "-"));
+    int year_first = atoi(strtok(NULL, "\0"));
 
-    int day_cur = atoi(strtok(cur_date, "-"));
-    int month_cur = atoi(strtok(NULL, "-"));
-    int year_cur = atoi(strtok(NULL, "\0"));
+    int day_sec = atoi(strtok(cur_date, "-"));
+    int month_sec = atoi(strtok(NULL, "-"));
+    int year_sec = atoi(strtok(NULL, "\0"));
 
     
 
-    if ( year_cur > year_vac){   //if year_cur > year_vac
+    if ( year_sec > year_first){   //check years
 
         return 1;
 
-    } else if ( year_vac > year_cur ){   //year_vac > year_cur
+    } else if ( year_first > year_sec ){   
 
         return -1;
 
-    } else {    //case: year_vac == year_cur
+    } else {    //case: year_fir == year_sec
 
-        if ( month_cur > month_vac ){   // month_cur > month_vac
+        if ( month_sec > month_first ){   // check months
 
             return 1;
 
-        } else if ( month_vac > month_cur ){   // month_vac > month_cur
+        } else if ( month_first > month_sec ){   
 
             return -1;
 
-        } else {    //case: month_vac == month_cur
+        } else {    //case: month_first == month_sec
             
-            if ( day_cur > day_vac ){   //if day_cur > day_vac
+            if ( day_sec > day_first ){   //check days
 
                 return 1;
 
-            } else if ( day_vac > day_cur ){   // day_vac > day_cur
+            } else if ( day_first > day_sec ){
 
                 return -1;
 
-            } else {    //case: day_vac == day_cur
+            } else {    //case: day_first == day_sec
 
                 return 0;
 
@@ -417,6 +489,9 @@ char *get_cur_date(){
 
     return cur_date;
 }
+
+
+
 
 
 int in_last_six(char *date){
