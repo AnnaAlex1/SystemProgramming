@@ -9,6 +9,7 @@
 int signal_num = 0;
 struct MonitorStruct *commun;
 extern int numMonitors; 
+extern size_t bufferSize;
 
 
 
@@ -28,7 +29,7 @@ void handle_recreate(int sig){
         
         if (commun[i].pid == child_pid){
             
-            create_child(i);
+            create_child(i, bufferSize);
         }
 
     }

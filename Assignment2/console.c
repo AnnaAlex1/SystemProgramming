@@ -164,7 +164,7 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
                         
                     } else {              //MAYBE IN THE STRUCTURE
 
-                        //sent_message(); the whole line?
+                        //send_message(); the whole line?
 
                         //get_message
 
@@ -290,11 +290,11 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
 
             char *citizenID = strtok(NULL, "\n");      
 
-            for (int i = 0; i < numMonitors; i++){
-               sent_message_wrong(commun[i].fd_w, citizenID, bufferSize);
-            }
+            /*for (int i = 0; i < numMonitors; i++){
+               send_message(commun[i].fd_w, citizenID, bufferSize);
+            }*/
 
-            //get_message_wrong();
+            //get_message();
             //get info
             //get vaccinations
             //print

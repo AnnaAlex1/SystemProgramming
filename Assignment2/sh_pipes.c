@@ -14,16 +14,16 @@
 #include <dirent.h>
 #include <signal.h>
 #include <errno.h>
+#include <math.h>
 
 
 extern int size_in_bytes;
 extern struct MonitorStruct *commun;
-extern size_t bufferSize;
 int numMonitors;
 
 
 
-void create_child(int i){
+void create_child(int i, int buffersize){
     
     //Δημιουργία named pipes
     char w_pname[] = "pipes/wfifo";
@@ -118,13 +118,17 @@ void create_child(int i){
 
 
 
-    char mes_to_sent[sizeof(long)];
-    sprintf(mes_to_sent, "%ld", bufferSize);
+    char mes_to_send[10];
+    sprintf(mes_to_send, "%d", buffersize);
+    //printf("MAIN PROGRAM to send buffersize: %s\n", mes_to_send);
 
-    sent_message_wrong(commun[i].fd_w, mes_to_sent, sizeof(long));
+    //SEND BUFFERSIZE
+    send_message(commun[i].fd_w, mes_to_send, strlen(mes_to_send)+1, sizeof(long));
 
-    sprintf(mes_to_sent, "%d", size_in_bytes);
-    sent_message_wrong(commun[i].fd_w, mes_to_sent, sizeof(int));
+    //SEND BLOOMSIZE
+    sprintf(mes_to_send, "%d", size_in_bytes);
+    //printf("MAIN PROGRAM to send bloomsize: %s\n", mes_to_send);
+    send_message(commun[i].fd_w, mes_to_send, strlen(mes_to_send)+1, buffersize);
 
 
     free(extw_pname);
@@ -133,178 +137,193 @@ void create_child(int i){
 }
 
 
-char* get_message_wrong(int fd, size_t buffersize){
-
-    char *message = malloc(buffersize);
-
-    int res = read( fd, message, buffersize );
-    //printf("GETT: Message from buffer: %s\n", message);
-
-    if ( res < 0 ){
-        perror("ERROR: in reading from Named Pipe");
-        return NULL;
-    } else if ( res == 0 ){
-        return "ending";
-    }
-    
-    //printf("READ result: %d\n", res);
-    //char* new_mess = malloc( (strlen(message)+1) * sizeof(char));
-    //strcpy(new_mess, message);
-    
-    return message;
-    
-
-}
 
 
 
 
-/*
+
+
+
 char* get_message(int fd, size_t buffersize){
 
 
-    char *complete_mess;
+    //char *complete_mess;
     char *message;
-    message = malloc( sizeof(char) * buffersize );
+    message = malloc( buffersize );
 
-    char *cur_mes = malloc( sizeof(char) * buffersize );
+    char *cur_mes = malloc( buffersize );
     
-    int i = 0;
     int res;
+    int remainder_len;
 
-    while(1) {
-        printf("Read no %d\n", i);
+
+    //get size of message
+    res = read(fd, message, buffersize);
+    if ( res < 0 ){
+        perror("ERROR: in reading from Named Pipe (size of message)");
+        return NULL;
+    }
+    int total_message = atoi(message);
+    //printf("Size of message to receive: %d\n", total_message);
+
+
+    //get number of rounds to perform
+    int rounds = ceil( (double)total_message / (double)buffersize );
+    //printf("GET MESSAGE: Rounds: %d\n", rounds);
+
+
+
+    for (int i = 0; i < rounds; i++){
+    
+
+        //printf("Read no %d\n", i);
+
+        //read i-th part of message
         res = read( fd, message, buffersize );
         if ( res < 0 ){
             perror("ERROR: in reading from Named Pipe");
-            return "error";
+            return NULL;
         }
-       
-        printf("Message from buffer: %s\n", message);
 
-
-        if ( i != 0){
-            cur_mes = realloc(cur_mes, sizeof(char)* ( (i+1)*buffersize) );
-        }
-        memcpy( cur_mes + i*buffersize, message, buffersize);
-
-        fflush(stdout);
-
-        if ( message[buffersize-1] == '\0' ){
-            break;
-        }
-        //if ( res == 0 ){
-        //    fflush(stdout);
-        //    break;
-        //}
-        i++;
-
-    }
-
-    complete_mess = malloc(sizeof(char) * (strlen(cur_mes)+1));
-    memcpy(complete_mess, cur_mes, strlen(cur_mes)+1);
-
-    printf("Complete Message: %s\n", complete_mess);
-    return complete_mess;
-}
-*/
-
-
-
-
-
-int sent_message_wrong(int fd, const void* message, size_t bufferSize){
-
-    int res = write(fd, message, bufferSize);  
-    if ( res == -1 ){
-        perror("ERROR: in writing in Named Pipe");
-        return -1;
-    }
-    
-    //printf("WRITE result: %d\n", res);
-    
-    return 0;
-
-}
-
-
-
-/*
-int sent_message(int fd, const void* message){
-
-
-       
-    int total_len = strlen(message)+1;
-    int remainder_len = total_len;        //length of string still to be sent
-    char remainder[bufferSize];
-    
-    int i=0;
-    while ( remainder_len > 0){
-
-        //printf("Write no %d\n", i);
-        memcpy(remainder, message + total_len - remainder_len, remainder_len);
-        
-        if ( remainder_len < bufferSize ){
-
-            for (int i=remainder_len; i<bufferSize; i++){
-                remainder[i] = '\0';
+        if ( i == rounds-1 ){       //for the last round
+            
+            
+            remainder_len = total_message % buffersize;
+            if (remainder_len == 0){
+                remainder_len = buffersize;
             }
+            
+            //allocate more space for new info
+            //printf("Realloc size to realloc: %ld\n",  i*buffersize + remainder_len);
+            cur_mes = realloc(cur_mes, i*buffersize + remainder_len );
+            
+            //printf("Remainder length=%d\n",remainder_len);
+
+            memcpy(cur_mes + i*buffersize, message, remainder_len);
+
+        } else{
+            
+            if ( i != 0 ){ //not first round
+                cur_mes = realloc(cur_mes, (i+1)*buffersize);
+            }
+            //printf("Realloc size to realloc: %ld\n",  (i+1)*buffersize);
+
+            memcpy(cur_mes + i*buffersize, message, buffersize);
+
         }
 
-        if ( write(fd, remainder, 12) == -1 ){
-            perror("ERROR: in writing in Named Pipe");
-            return -1;
-        }
-        //printf("Write no %d END\n", i);
-        remainder_len = remainder_len - bufferSize;
-        i++;
-    }
-
-    
-    return 0;
-
-}
-*/
-
-
-
-int sent_bloomfilters(int fd, struct List* virus_list, size_t buffersize){
-
-    if (virus_list == NULL){
-        printf("No BloomFilters to be sent\n");
-        return -1;
-    }
-
-
-    struct List* virus_temp = virus_list;
-    char *message = malloc(buffersize);
-
-    while( virus_temp != NULL){
-
-        //sent name of virus
-        memcpy(message, virus_temp->name, strlen(virus_temp->name)+1);
-        printf("SENTT: VirusTemp->name = %s, message:  %s\n", virus_temp->name, message);
-        sent_message_wrong(fd, message, buffersize);       
-
-        //sent bloomfilter for virus
-        memcpy(message, virus_temp->vacc_bloom->array, size_in_bytes+sizeof(int));
         
-        //print_Bloom( *(virus_temp->vacc_bloom->array));
-        //print_Bloom( (struct bloomfilter) *message);
 
-        sent_message_wrong(fd, message, buffersize);
-        
-        virus_temp = virus_temp->next;
     }
-
-    //strcpy(message, "DONE");
-    sent_message_wrong(fd, "DONE", buffersize);
 
 
     free(message);
 
+    return cur_mes;
+}
+
+
+
+
+
+
+
+
+int send_message(int fd, const void* message, int size_of_message, size_t buffersize){
+
+
+    int remainder_len;        //length of string for last round
+    char to_send[buffersize];
+    
+
+    //get number of rounds to perform
+    int rounds = ceil( (double)size_of_message / (double)buffersize );
+    //printf("SEND MESSAGE Rounds: %d\n", rounds);  
+
+    //send message's size
+    char size_str[10];
+    sprintf(size_str, "%d", size_of_message);
+    if ( write(fd, size_str, buffersize) == -1 ){
+        perror("ERROR: in writing in Named Pipe (size of message)");
+        return -1;
+    }
+
+    //printf("Size of message to send: %d     %s\n", size_of_message, size_str);
+
+    for( int i=0; i<rounds; i++ ){
+
+        if ( i == rounds-1 ){   //if last round
+            remainder_len = size_of_message % buffersize;
+            if (remainder_len == 0){
+                remainder_len = buffersize;
+            }
+            
+            //printf("Remainder length=%d\n",remainder_len);
+
+            memcpy(to_send, message + i*buffersize, remainder_len);
+
+        } else {        //every other round
+            memcpy(to_send, message + i*buffersize, buffersize);
+        }
+        
+        
+
+        if ( write(fd, to_send, buffersize) == -1 ){
+            perror("ERROR: in writing in Named Pipe");
+            return -1;
+        }
+
+        
+    }
+
+    
+    return 0;
+
+}
+
+
+
+
+
+
+
+
+
+
+
+int send_bloomfilters(int fd, struct List* virus_list, size_t buffersize){
+
+    if (virus_list == NULL){
+        printf("No BloomFilters to be send\n");
+        return -1;
+    }
+
+    struct List* virus_temp = virus_list;
+
+    while( virus_temp != NULL){
+
+        //send name of virus
+        //printf("SENDD: VirusTemp->name = %s\n", virus_temp->name);
+        send_message(fd, virus_temp->name, strlen(virus_temp->name)+1, buffersize);       
+
+        //print_Bloom( *(virus_temp->vacc_bloom->array));
+        //print_Bloom( (struct bloomfilter) *message);
+
+        //send bloomfilter for virus
+        send_message(fd, virus_temp->vacc_bloom->array, size_in_bytes+sizeof(int), buffersize);
+        
+        virus_temp = virus_temp->next;
+    }
+
+    send_message(fd, "DONE", strlen("DONE")+1, buffersize);
+
     return 0;
 }
+
+
+
+
+
 
 
 
@@ -324,8 +343,8 @@ int get_bloomfilters(struct MonitorStruct *commun, size_t buffersize, int numMon
         while( 1 ){
 
             //get name of virus
-            virusname = get_message_wrong(commun[i].fd_r, buffersize);
-            printf("LAST: virusname: %s\n", virusname);
+            virusname = get_message(commun[i].fd_r, buffersize);
+            printf("GOT: virusname: %s\n", virusname);
 
             if ( virusname == NULL ){
                 perror("ERROR in getting name of virus");
@@ -343,16 +362,12 @@ int get_bloomfilters(struct MonitorStruct *commun, size_t buffersize, int numMon
             }
 
             //get bloomfilter of virus
-            bloomfilter = get_message_wrong(commun[i].fd_r,buffersize);
+            bloomfilter = get_message(commun[i].fd_r,buffersize);
 
             memcpy(bloomf, bloomfilter, size_in_bytes + sizeof(int));
-            /*if ( strcmp(bloomfilter, "error") == 0 ){
-                perror("ERROR in getting Bloomfilter of virus");
-                return -1;
-            }*/
 
-            //printf("VirusName: %s\n", virusname);
-
+            
+            //Add Viruses and corresponding Bloomfilters to list
             addinVirMain(&(commun[i].viruses), virusname, bloomf);
             //print_Bloom(*(commun[i].viruses->vacc_bloom));
             
@@ -367,11 +382,10 @@ int get_bloomfilters(struct MonitorStruct *commun, size_t buffersize, int numMon
 
     }
     
-    //printVirMain(commun[0].viruses);
-
-
-    
+   
     return 0;
    
 
 }
+
+

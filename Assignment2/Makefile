@@ -3,10 +3,10 @@ CFLAGS=-Wall -g
 
 
 travelMonitor: main.o requests.o signal_handl.o sh_pipes.o console.o citizens.o records.o virus.o bloomfilter.o skiplist.o countries.o
-	$(CC) $(CFLAGS) -o travelMonitor main.o requests.o signal_handl.o sh_pipes.o console.o citizens.o records.o virus.o bloomfilter.o skiplist.o countries.o
+	$(CC) $(CFLAGS) -o travelMonitor main.o requests.o signal_handl.o sh_pipes.o console.o citizens.o records.o virus.o bloomfilter.o skiplist.o countries.o -lm
 
 monitor: monitor.o requests.o signal_handl.o sh_pipes.o console.o citizens.o records.o virus.o bloomfilter.o skiplist.o countries.o
-	$(CC) $(CFLAGS) -o monitor monitor.o requests.o signal_handl.o sh_pipes.o console.o citizens.o records.o virus.o bloomfilter.o skiplist.o countries.o
+	$(CC) $(CFLAGS) -o monitor monitor.o requests.o signal_handl.o sh_pipes.o console.o citizens.o records.o virus.o bloomfilter.o skiplist.o countries.o -lm
 
 
 
@@ -24,7 +24,7 @@ signal_handl.o: signal_handl.c
 	$(CC) $(CFLAGS) -c signal_handl.c
 
 sh_pipes.o: sh_pipes.c
-	$(CC) $(CFLAGS) -c sh_pipes.c
+	$(CC) $(CFLAGS) -c sh_pipes.c -lm
 
 
 console.o: console.c

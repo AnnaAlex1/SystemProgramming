@@ -22,7 +22,7 @@
 #include "countries.h"
 
 
-size_t bufferSize =10000;
+size_t bufferSize;
 
 extern int size_in_bytes;   //-s
 extern int signal_num;
@@ -69,26 +69,27 @@ int main(int argc, char* argv[]){
     ////////////////////////////////////////////
     //GET bufferSize    
     char *message;
-    message = get_message_wrong( fd_r, sizeof(long));         //get bufferSize
+    message = get_message( fd_r, sizeof(long));         //get bufferSize
     if ( strcmp(message, "error") == 0){
         exit(2);
     }
 
 
     bufferSize = atoi(message);
-    printf("bufferSize: %ld\n", bufferSize);
+    printf("Monitor Received BUFFERSIZE of %ld\n", bufferSize);
 
     free(message);
 
     ///////////////////////////////////////????
     //GET BLOOMSIZE 
-    message = get_message_wrong( fd_r,  sizeof(int));         //get bufferSize
+    message = get_message( fd_r,  bufferSize);         //get bufferSize
     if ( strcmp(message, "error") == 0){
         exit(2);
     }
 
+    printf("Monitor Received BLOOMSIZE of %s (string)\n", message);
     size_in_bytes = atoi(message);
-    printf("Bloomsize: %d\n", size_in_bytes);
+    printf("Monitor Received BLOOMSIZE of %d\n", size_in_bytes);
 
     free(message);
     ////////////////////////////////////////////
@@ -108,27 +109,28 @@ int main(int argc, char* argv[]){
     CountryHash countries;
     countries = hashtable_createCoun();
 
-
+    
 
     //ΑΡΧΙΚΟΠΟΙΗΣΗ: Αναμονή για χώρες
     //διαβάζει μέσω των named pipes τις χώρες που θα αναλάβει
     if ( store_records(fd_r, argv[1], citizens, &virus_list, countries) == -1 ){
-        perror("ERROR in storing records");
+        printf("ERROR in storing records");
         exit(1);
-    } 
+    }
 
 
-
+    
     //Αποστολή των Bloomfilter (για κάθε ίωση)
-    if (sent_bloomfilters(fd_w, virus_list, bufferSize) == -1){
+    if (send_bloomfilters(fd_w, virus_list, bufferSize) == -1){
         perror("ERROR in sending bloomfilters");
         exit(1);
     }
 
 
-
+    
     //Αποστολή μηνύματος ετοιμότητας για αιτήματα
-    sent_message_wrong(fd_w, "READY", bufferSize);
+    send_message(fd_w, "READY", strlen("READY")+1, bufferSize);
+
 
     ////////////////////////////////
     //SIGNAL HANDLING
@@ -150,9 +152,11 @@ int main(int argc, char* argv[]){
     sigaction(SIGUSR1 , &sa3 , NULL);
     
     
+
+    
     //////////////////////////////////
     //MAIN FUNCTION OF MONITORS
-    monitor_body(fd_w, citizens, &virus_list, countries);
+    //monitor_body(fd_w, citizens, &virus_list, countries);
 
 
 
@@ -217,7 +221,7 @@ int store_records(int fd_r, char* pipename, Hashtable citizens, struct List** vi
     while(1) {
 
         //GET DIRECTORY
-        country_dir_name = get_message_wrong(fd_r, bufferSize);
+        country_dir_name = get_message(fd_r, bufferSize);
 
         printf("Monitor with %s gets directory: %s\n", pipename, country_dir_name);
 
@@ -331,7 +335,7 @@ void monitor_body(int fd_w, Hashtable citizens, struct List **viruslist, Country
             }
 
             //Αποστολή των Bloomfilter (για κάθε ίωση)
-            /*if (sent_bloomfilters(fd_w, viruslist, bufferSize) == -1){
+            /*if (send_bloomfilters(fd_w, viruslist, bufferSize) == -1){
                 perror("ERROR in sending bloomfilters");
                 exit(1);
             }*/

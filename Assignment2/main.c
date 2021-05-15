@@ -22,7 +22,7 @@
 
 
 extern int size_in_bytes;   //-s
-size_t bufferSize = 10000;             //-b
+size_t bufferSize;             //-b
 extern int numMonitors;    //-m 
 extern struct MonitorStruct *commun;
 
@@ -39,11 +39,9 @@ int main( int argc, char *argv[]){
     }
 
 
-    
     char *input_dir;    //-i
 
     
-
     //check correctness of arguments
     if ( (strcmp(argv[1], "-m") == 0) &&  (strcmp(argv[3], "-b") == 0) 
         &&  (strcmp(argv[5], "-s") == 0)  &&  (strcmp(argv[7], "-i") == 0)){      //-m, -b, -s, -i
@@ -292,39 +290,29 @@ int main( int argc, char *argv[]){
     
     for (int i=0; i<numMonitors; i++){
 
-        create_child(i);
+        create_child(i, bufferSize);
 
     }
 
 
-
+    
     printf("\nDistribution of folders:\n");
     distribute_subdirs(input_dir, commun, countries);
 
     
-
+    
     //ΑΝΑΜΟΝΗ ΓΙΑ BLOOMFILTERS
     if (get_bloomfilters(commun, bufferSize, numMonitors) == -1){
         perror("ERROR in getting bloomfilters");
         exit(1);
     }
 
-
+    
     //ΛΗΨΗ ΜΗΝΥΜΑΤΟΣ ΕΤΟΙΜΟΤΗΤΑΣ
     char *ready = NULL;
     for (int i = 0; i < numMonitors; i++){
 
-        /*if ( ready != NULL ){
-            
-            do{
-                ready = get_message_wrong(commun[i].fd_r, bufferSize);
-
-            } while ( strcmp(ready, "READY") != 0 );
-
-
-        }*/
-
-        ready = get_message_wrong(commun[i].fd_r, bufferSize);
+        ready = get_message(commun[i].fd_r, bufferSize);
         if ( strcmp(ready, "READY") != 0 ){
             printf("Something Went Wrong!\n");
         } else {
@@ -334,13 +322,13 @@ int main( int argc, char *argv[]){
     }
     
 
-    static struct sigaction sa1;        //SIGINT   Ctrl+C
-    static struct sigaction sa2;        //SIGQUIT   Ctrl + \ ///
+    static struct sigaction sa1;        
+    static struct sigaction sa2;        
     static struct sigaction sa3;        //SIGCHLD   kill -s CHLD pid
 
     sa1.sa_handler = handle_ParentFin;
     sigfillset (&(sa1.sa_mask));
-    //sigaction(SIGINT , &sa1 , NULL);
+    sigaction(SIGINT , &sa1 , NULL);
 
     sa2.sa_handler = handle_ParentFin;
     sigfillset (&(sa2.sa_mask));
@@ -351,16 +339,16 @@ int main( int argc, char *argv[]){
     sigaction(SIGCHLD , &sa3 , NULL);
 
 
+    
     ////////////////////////////////////
     //CONSOLE
-    console(commun, countries, bufferSize);
+    //console(commun, countries, bufferSize);
 
 
     //SIGPROCMASK ΚΑΤΑ ΤΗΝ ΑΠΟΣΤΟΛΗ ΔΕΔΟΜΕΝΩΝ -> ΜΠΛΟΚΑΡΙΣΜΑ ΜΗΝΥΜΑΤΩΝ
 
  
 
-    
 
     hashtable_destroyCounMain(countries);
     free(countries);
@@ -412,7 +400,7 @@ void distribute_subdirs(char * input_dir, struct MonitorStruct *commun, CountryM
             strcat(path, dsub_dir->d_name);
 
             //printf("File descriptor: fd[%d]=%d, subdirectory: %s\n", i, fd[i], path);
-            sent_message_wrong(commun[i].fd_w, path, bufferSize);
+            send_message(commun[i].fd_w, path, strlen(path)+1, bufferSize);
 
             i = (i + 1) % numMonitors;
 
@@ -424,7 +412,7 @@ void distribute_subdirs(char * input_dir, struct MonitorStruct *commun, CountryM
     char *mes = malloc(bufferSize);
     strcpy(mes, "DONE");
     for (int i = 0; i < numMonitors; i++){
-        sent_message_wrong(commun[i].fd_w, mes, bufferSize);
+        send_message(commun[i].fd_w, mes, strlen("DONE")+1, bufferSize);
     }
     free(mes);
     printf("Finished Sending DONE signal\n");
