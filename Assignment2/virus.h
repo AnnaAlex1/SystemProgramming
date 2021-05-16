@@ -39,6 +39,7 @@ struct VirusesListMain{
 
 void addinVirMain(struct VirusesListMain** virus_list, char* name, unsigned int *bloom);
 int deleteVirMain(struct VirusesListMain** virus_list);
+void replace_bloom(struct VirusesListMain* virus_list, char* name, unsigned int *bloom);
 struct VirusesListMain* getelemfromVirMain(struct VirusesListMain* virus_list, char* element);
 void printVirMain(struct VirusesListMain* virus_list);
 

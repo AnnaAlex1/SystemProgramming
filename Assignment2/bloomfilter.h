@@ -4,7 +4,6 @@
 #define NUM_OF_HASHES 16
 
 
-
 struct BloomFilter{
 
     unsigned int* array;

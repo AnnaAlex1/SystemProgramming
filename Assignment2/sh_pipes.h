@@ -21,6 +21,6 @@ int send_message(int fd, const void* message, int size_of_message, size_t buffer
 char* get_message(int fd_r, size_t buffersize);
 
 int send_bloomfilters(int fd, struct List* virus_list, size_t buffersize);
-int get_bloomfilters(struct MonitorStruct *commun, size_t buffersize, int numMonitors);
+int get_bloomfilters(struct MonitorStruct *commun, size_t buffersize, int numMonitors, int i, int replace);
 
 #endif

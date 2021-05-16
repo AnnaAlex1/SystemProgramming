@@ -23,15 +23,16 @@ extern int numMonitors;
 extern int signal_num;
 
 
+
+
 void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bufferSize){
 
-    char input[300];
+    char input[500];
     char *arg;
 
     char *virusName;
 
     int total_requests=0, accepted_req=0, rejected_req=0;
-    int approved = 0;
     
     struct RequestsList *req_list = NULL;
 
@@ -79,10 +80,10 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
                 free(commun[i].fifoname_w);
                 free(commun[i].fifoname_r);
 
-                //deleteVirMain(&(commun[i].viruses));
+                deleteVirMain(&(commun[i].viruses));
             }
             free(commun);
-
+            
     
             //PRINT LOGFILE
             int my_pid = getpid();
@@ -104,6 +105,8 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
             
 
             //FREE MEMORY
+            fclose(logfile);
+            free(filename);
             deleteReqlist(&req_list);
 
             return;
@@ -138,79 +141,10 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
 
             
 
-
-            //FIND MONITOR THAT HANDLES COUNTRYFROM
-            struct CountryMain* cs = hashtable_getCounMain(countries, countryFrom);
-            
-            for (int i = 0; i < numMonitors; i++){
-                
-                if ( commun[i].pid == cs->pid ){    //found monitor that handled countryfrom
+            travel_Req(commun, countries, bufferSize, virusName, countryFrom, citizenID, 
+                    date, countryTo, &rejected_req, &accepted_req, &req_list);
 
 
-                    //find virus struct
-
-                    struct VirusesListMain *vir_elem;
-                    vir_elem = getelemfromVirMain(commun[i].viruses, virusName);
-
-
-                    //check bloomfilter
-
-                    if ( search_Bloom(*(vir_elem->vacc_bloom), NUM_OF_HASHES, citizenID) == 0){//NOT IN THE STRUCTURE
-                        
-                        printf("REQUEST REJECTED - YOU ARE NOT VACCINATED\n");
-                        approved = 0;
-                        rejected_req++;
-                        
-                        
-                    } else {              //MAYBE IN THE STRUCTURE
-
-                        //send_message(); the whole line?
-
-                        //get_message
-
-                        /*if ( strcmp(message, "YES") == 0){
-                            
-                            //get date
-                            if ( in_last_6(date) ){      //vaccinated in last 6 months
-                                    printf("REQUEST ACCEPTED – HAPPY TRAVELS\n");
-                                    approved = 1;
-                            } else {
-                                    printf("REQUEST REJECTED – YOU WILL NEED ANOTHER VACCINATION BEFORE TRAVEL DATE\n");
-                                    approved = 0;
-                            }
-
-                        } else if ( strcmp(message, "NO") == 0){
-                            
-                            printf("REQUEST REJECTED - YOU ARE NOT VACCINATED\n");
-                            approved = 0;
-                            rejected_req++;
-
-                        }*/
-
-
-
-                        //ζητάει μέσω named pipe από το Monitor process που διαχειρίζεται 
-                        //τη χώρα countryFrom αν όντως έχει εμβολιαστεί ο citizenID.
-                        /*
-                        Αν το bloom filter υποδεικνύει πως ο πολίτης citizenID ίσως έχει εμβολιαστεί κατά 
-                        του virusName, η εφαρμογη  Το Monitor process απαντάει μέσω named pipe YES/NO 
-                        όπου στη περίπτωση του YES, στέλνει και την ημερομηνία εμβολιασμού.  Η εφαρμογή 
-                        ελέγχει αν έχει εμβολιαστεί ο πολίτης λιγότερο από 6 
-                        μήνες πριν την επιθυμητή ημερομηνία ταξιδιού date και τυπώνει ένα από τα ακόλουθα 
-                        μηνύματα
-
-                        */
-
-                    }
-
-                }
-                
-
-            }
-            
-
-            //ADD REQUEST TO LIST
-            addRequest(&req_list, virusName, date, countryTo, approved);
 
         //TRAVEL STATE
         } else if ( strcmp(arg, "/travelStats") == 0){
@@ -261,12 +195,17 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
                 
                 if ( commun[i].pid == cs->pid ){    //found monitor that handled countryfrom
 
+                    //send SIGUSR1 signal
                     kill(commun[i].pid, SIGUSR1);
 
+                    //wait for new bloomfilter
+                    if ( get_bloomfilters(commun, bufferSize, numMonitors, i, 1) == -1){
+                        perror("ERROR in replacing bloomfilter");
+                        exit(1);
+                    }
                 }
 
 
-                //get_bloomfilters();
             }
 
             
@@ -290,14 +229,48 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
 
             char *citizenID = strtok(NULL, "\n");      
 
-            /*for (int i = 0; i < numMonitors; i++){
-               send_message(commun[i].fd_w, citizenID, bufferSize);
-            }*/
+            for (int i = 0; i < numMonitors; i++){
 
-            //get_message();
-            //get info
-            //get vaccinations
-            //print
+                kill(commun[i].pid, SIGUSR2);   //SEND SIGNAL FOR READING
+
+                //send command
+                send_message(commun[i].fd_w, "searchVaccinationStatus", strlen("searchVaccinationStatus")+1, bufferSize);
+                
+                //send citizenID
+                send_message(commun[i].fd_w, citizenID, strlen(citizenID)+1, bufferSize);
+            }
+
+            char *answer;
+
+            for (int i = 0; i < numMonitors; i++){
+               
+                answer = get_message(commun[i].fd_r, bufferSize);
+            
+                if ( strcmp(answer, "FOUND") == 0 ){
+
+                    //wait for information
+                    char *info;
+
+                    while ( 1 ){
+
+                        info = get_message(commun[i].fd_r, bufferSize);
+
+                        if ( strcmp(info, "DONE") == 0 ){
+                            free(info);
+                            break;
+                        }
+
+                        printf("%s\n", info);
+
+                        free(info);
+                    }
+
+
+                }
+
+                free(answer);
+            }
+
 
 
 
@@ -313,6 +286,111 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
 }
 
 
+
+
+void travel_Req(struct MonitorStruct *commun, CountryMainHash countries, size_t bufferSize,
+                char *virusName, char *countryFrom, char *citizenID, char *date, char* countryTo,
+                 int *rejected_req, int *accepted_req, struct RequestsList **req_list){
+
+    int approved = 0;
+
+    //FIND MONITOR THAT HANDLES COUNTRYFROM
+    struct CountryMain* cs = hashtable_getCounMain(countries, countryFrom);
+    
+    for (int i = 0; i < numMonitors; i++){
+        
+        if ( commun[i].pid == cs->pid ){    //found monitor that handled countryfrom
+
+
+            //find virus struct
+            struct VirusesListMain *vir_elem;
+            vir_elem = getelemfromVirMain(commun[i].viruses, virusName);
+
+
+            //check bloomfilter
+
+            if ( search_Bloom(*(vir_elem->vacc_bloom), NUM_OF_HASHES, citizenID) == 0){//NOT IN THE STRUCTURE
+                
+                printf("REQUEST REJECTED - YOU ARE NOT VACCINATED\n");
+                approved = 0;
+                (*rejected_req)++;
+                
+                
+            } else {              //MAYBE IN THE STRUCTURE
+
+                //SEND SIGNAL FOR READING
+                kill(commun[i].pid, SIGUSR2);
+
+                //SEND CHOSEN COMMAND
+                send_message(commun[i].fd_w, "travelRequest", strlen("travelRequest")+1, bufferSize);
+
+
+                //SEND NECESSARY INFO
+                //send name of virus
+                send_message(commun[i].fd_w, virusName, strlen(virusName)+1, bufferSize);
+                //send name of country                       
+                send_message(commun[i].fd_w, countryFrom, strlen(countryFrom)+1, bufferSize);
+                //send citizenID
+                send_message(commun[i].fd_w, citizenID, strlen(citizenID)+1, bufferSize);
+                
+
+                //GET RESULT
+                char *result = get_message(commun[i].fd_r, bufferSize);
+
+                if ( strcmp(result, "YES") == 0){
+                    
+                    //GET DATE
+                    char *date = get_message(commun[i].fd_r, bufferSize);
+
+                    if ( in_last_six(date) ){      //vaccinated in last 6 months
+                            printf("REQUEST ACCEPTED – HAPPY TRAVELS\n");
+                            approved = 1;
+                            (*accepted_req)++;
+                    } else {
+                            printf("REQUEST REJECTED – YOU WILL NEED ANOTHER VACCINATION BEFORE TRAVEL DATE\n");
+                            approved = 0;
+                            rejected_req++;
+                    }
+
+                    free(date);
+
+                } else if ( strcmp(result, "NO") == 0){
+                    
+                    printf("REQUEST REJECTED - YOU ARE NOT VACCINATED\n");
+                    approved = 0;
+                    rejected_req++;
+
+                }
+
+                free(result);
+
+
+
+                //ζητάει μέσω named pipe από το Monitor process που διαχειρίζεται 
+                //τη χώρα countryFrom αν όντως έχει εμβολιαστεί ο citizenID.
+                /*
+                Αν το bloom filter υποδεικνύει πως ο πολίτης citizenID ίσως έχει εμβολιαστεί κατά 
+                του virusName, η εφαρμογη  Το Monitor process απαντάει μέσω named pipe YES/NO 
+                όπου στη περίπτωση του YES, στέλνει και την ημερομηνία εμβολιασμού.  Η εφαρμογή 
+                ελέγχει αν έχει εμβολιαστεί ο πολίτης λιγότερο από 6 
+                μήνες πριν την επιθυμητή ημερομηνία ταξιδιού date και τυπώνει ένα από τα ακόλουθα 
+                μηνύματα
+
+                */
+
+            }
+
+        }
+        
+
+    }
+    
+
+    //ADD REQUEST TO LIST
+    addRequest(req_list, virusName, date, countryTo, approved);
+
+
+}
 
 
 
@@ -400,7 +478,7 @@ void travel_stat_one(struct RequestsList *req, char *virus, char* date1, char* d
 
 
 
-
+//DECIDES THE LATEST DATE
 int datecmp(char* date1, char* date2){
 
     char firstdate[12];
@@ -468,8 +546,7 @@ int datecmp(char* date1, char* date2){
 
 
 
-
-
+//RETURNS CURRENT DATE
 char *get_cur_date(){
 
     time_t cur_time;
@@ -493,13 +570,12 @@ char *get_cur_date(){
 
 
 
-
+//DECIDES IF DATE WAS IN LAST SIX MONTHS
 int in_last_six(char *date){
 
     char vac_date[12];
     strcpy(vac_date, date);
-    char cur_date[12];
-    strcpy(cur_date, get_cur_date());
+    char *cur_date = get_cur_date();
 
 
     int day_vac = atoi(strtok(vac_date, "-"));
@@ -511,12 +587,12 @@ int in_last_six(char *date){
     int year_cur = atoi(strtok(NULL, "\0"));
 
     
+    free(cur_date);
+
 
     if ( year_cur < year_vac ){  // vaccinated in the future -> false
         return -1;
     }
-
-
 
 
     if ( year_cur > year_vac){   // vaccination in different year

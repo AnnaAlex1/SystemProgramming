@@ -194,11 +194,8 @@ char* get_message(int fd, size_t buffersize){
             }
             
             //allocate more space for new info
-            //printf("Realloc size to realloc: %ld\n",  i*buffersize + remainder_len);
             cur_mes = realloc(cur_mes, i*buffersize + remainder_len );
             
-            //printf("Remainder length=%d\n",remainder_len);
-
             memcpy(cur_mes + i*buffersize, message, remainder_len);
 
         } else{
@@ -328,7 +325,7 @@ int send_bloomfilters(int fd, struct List* virus_list, size_t buffersize){
 
 
 
-int get_bloomfilters(struct MonitorStruct *commun, size_t buffersize, int numMonitors){
+int get_bloomfilters(struct MonitorStruct *commun, size_t buffersize, int numMonitors, int i, int replace){
 
     char *virusname = NULL; // = malloc(buffersize); 
     char *bloomfilter; // = malloc(buffersize); 
@@ -336,53 +333,58 @@ int get_bloomfilters(struct MonitorStruct *commun, size_t buffersize, int numMon
     bloomf = malloc( size_in_bytes + sizeof(int));
 
 
+    while( 1 ){
 
-    for (int i = 0; i < numMonitors; i++){      //for each monitor
+        //get name of virus
+        virusname = get_message(commun[i].fd_r, buffersize);
+        //printf("GOT: virusname: %s\n", virusname);
+
+        if ( virusname == NULL ){
+            perror("ERROR in getting name of virus");
+            return -1;
+        } else if ( strcmp(virusname, "ending") == 0){
+            printf("ERROR2 in getting name of virus\n");
+            return -1;
+        }
+
+        //printf("LAST: Message from buffer: %s\n", virusname);
+        if ( strcmp(virusname, "DONE") == 0 ){
+            printf("Done getting Bloomfilters from Monitor %d\n", commun[i].pid);
+            free(virusname);
+            break;
+        }
+
+        //get bloomfilter of virus
+        bloomfilter = get_message(commun[i].fd_r,buffersize);
+
+        memcpy(bloomf, bloomfilter, size_in_bytes + sizeof(int));
+
         
-
-        while( 1 ){
-
-            //get name of virus
-            virusname = get_message(commun[i].fd_r, buffersize);
-            printf("GOT: virusname: %s\n", virusname);
-
-            if ( virusname == NULL ){
-                perror("ERROR in getting name of virus");
-                return -1;
-            } else if ( strcmp(virusname, "ending") == 0){
-                printf("ERROR2 in getting name of virus\n");
-                return -1;
-            }
-
-            //printf("LAST: Message from buffer: %s\n", virusname);
-            if ( strcmp(virusname, "DONE") == 0 ){
-                printf("Done getting Bloomfilters from Monitor %d\n", commun[i].pid);
-                //free(virusname);
-                break;
-            }
-
-            //get bloomfilter of virus
-            bloomfilter = get_message(commun[i].fd_r,buffersize);
-
-            memcpy(bloomf, bloomfilter, size_in_bytes + sizeof(int));
-
+        if (replace){   //if there is an older version of the bloomfilter
+            
+            replace_bloom(commun[i].viruses, virusname, bloomf);
+        
+        } else {    //initial send of bloomfilter
             
             //Add Viruses and corresponding Bloomfilters to list
             addinVirMain(&(commun[i].viruses), virusname, bloomf);
-            //print_Bloom(*(commun[i].viruses->vacc_bloom));
-            
-
-            free(virusname);
-            virusname = NULL;
-            free(bloomfilter);
-            
         }
+        
+        //print_Bloom(*(commun[i].viruses->vacc_bloom));
+        
 
-
-
+        free(virusname);
+        virusname = NULL;
+        free(bloomfilter);
+        
     }
+
+
+
+    
     
    
+    free(bloomf);
     return 0;
    
 

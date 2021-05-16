@@ -302,9 +302,13 @@ int main( int argc, char *argv[]){
     
     
     //ΑΝΑΜΟΝΗ ΓΙΑ BLOOMFILTERS
-    if (get_bloomfilters(commun, bufferSize, numMonitors) == -1){
-        perror("ERROR in getting bloomfilters");
-        exit(1);
+    for (int i = 0; i < numMonitors; i++){      //for each monitor
+
+        if (get_bloomfilters(commun, bufferSize, numMonitors, i, 0) == -1){
+            perror("ERROR in getting bloomfilters");
+            exit(1);
+        }
+
     }
 
     
@@ -319,6 +323,7 @@ int main( int argc, char *argv[]){
             printf("Monitor %d is ready!\n", commun[i].pid);
         }
         
+        free(ready);
     }
     
 
@@ -342,7 +347,7 @@ int main( int argc, char *argv[]){
     
     ////////////////////////////////////
     //CONSOLE
-    //console(commun, countries, bufferSize);
+    console(commun, countries, bufferSize);
 
 
     //SIGPROCMASK ΚΑΤΑ ΤΗΝ ΑΠΟΣΤΟΛΗ ΔΕΔΟΜΕΝΩΝ -> ΜΠΛΟΚΑΡΙΣΜΑ ΜΗΝΥΜΑΤΩΝ
@@ -352,6 +357,7 @@ int main( int argc, char *argv[]){
 
     hashtable_destroyCounMain(countries);
     free(countries);
+    free(input_dir);
 
     return 0;
 }
@@ -373,6 +379,7 @@ void distribute_subdirs(char * input_dir, struct MonitorStruct *commun, CountryM
     //READ FILES
     DIR *maindr;
     struct dirent *dsub_dir;
+    char *path;
 
 
     //open directory input_dir
@@ -392,9 +399,7 @@ void distribute_subdirs(char * input_dir, struct MonitorStruct *commun, CountryM
 
             printf("    Opening Directory: %s\n", dsub_dir->d_name);
 
-            char *path;
             path = malloc(sizeof(char) * ( strlen(dsub_dir->d_name) + strlen(input_dir) + 2 ) );
-            //path=malloc(bufferSize);
             strcpy(path, input_dir);
             strcat(path, "/");
             strcat(path, dsub_dir->d_name);
@@ -404,6 +409,7 @@ void distribute_subdirs(char * input_dir, struct MonitorStruct *commun, CountryM
 
             i = (i + 1) % numMonitors;
 
+            free(path);
         }
 
     }
@@ -417,6 +423,7 @@ void distribute_subdirs(char * input_dir, struct MonitorStruct *commun, CountryM
     free(mes);
     printf("Finished Sending DONE signal\n");
 
+    closedir(maindr);
 }
 
 

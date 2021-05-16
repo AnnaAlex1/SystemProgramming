@@ -467,7 +467,6 @@ void hashtable_destroyCounMain(CountryMainHash ht){
 
             for (int j = 0; j < BUC_SIZE; j++){
                 free(current_buc->element[j].name);
-
             }
             
             free(current_buc->element);

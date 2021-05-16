@@ -181,6 +181,20 @@ void addinVirMain(struct VirusesListMain** virus_list, char* name, unsigned int 
 }
 
 
+void replace_bloom(struct VirusesListMain* virus_list, char* name, unsigned int *bloom){
+    
+    while ( virus_list != NULL ){
+
+        if ( strcmp(virus_list->name, name) == 0 ){
+
+            memcpy(virus_list->vacc_bloom, bloom, (virus_list->vacc_bloom->num_of_pos)*sizeof(int));
+        
+        }
+    }
+
+}
+
+
 
 
 struct VirusesListMain* getelemfromVirMain(struct VirusesListMain* virus_list, char* element){

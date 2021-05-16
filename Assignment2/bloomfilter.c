@@ -86,6 +86,10 @@ int search_Bloom(struct BloomFilter bf, int K, char* element){
 }
 
 
+
+
+
+
 void destroy_Bloom(struct BloomFilter *bf){
 	free(bf->array);
     free(bf);

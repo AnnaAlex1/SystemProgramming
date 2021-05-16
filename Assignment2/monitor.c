@@ -29,7 +29,7 @@ extern int signal_num;
 
 
 int store_records(int fd_r, char* pipename, Hashtable citizens, struct List** virus_list, CountryHash countries);
-void monitor_body(int fd_w, Hashtable citizens, struct List **viruslist, CountryHash countries);
+void monitor_body(int fd_w, int fd_r, Hashtable citizens, struct List **viruslist, CountryHash countries);
 int read_new_files(Hashtable citizens, struct List** virus_list, CountryHash countries);
 
 
@@ -135,9 +135,10 @@ int main(int argc, char* argv[]){
     ////////////////////////////////
     //SIGNAL HANDLING
 
-    static struct sigaction sa1;        //SIGINT   CNTR+C
-    static struct sigaction sa2;        //SIGQUIT    Ctrl + \ or Ctrl + Y
+    static struct sigaction sa1;        //SIGINT
+    static struct sigaction sa2;        //SIGQUIT
     static struct sigaction sa3;        //SIGUSR1      kill -s USR1 pid
+    static struct sigaction sa4;
 
     sa1.sa_handler = handle_MonitorFin;
     sigfillset (&(sa1.sa_mask));
@@ -151,12 +152,14 @@ int main(int argc, char* argv[]){
     sigfillset (&(sa3.sa_mask));
     sigaction(SIGUSR1 , &sa3 , NULL);
     
-    
+    sa4.sa_handler = handle_needtoread;
+    sigfillset (&(sa4.sa_mask));
+    sigaction(SIGUSR2 , &sa4 , NULL);   
 
     
     //////////////////////////////////
     //MAIN FUNCTION OF MONITORS
-    //monitor_body(fd_w, citizens, &virus_list, countries);
+    monitor_body(fd_w, fd_r, citizens, &virus_list, countries);
 
 
 
@@ -168,7 +171,7 @@ int main(int argc, char* argv[]){
     /*printf("\n\nPRINT STRUCTURES: %s\n", argv[1]);
     print_hashtable(citizens);
     printlist(virus_list);
-    print_hashtableCoun(countries);*/
+    print_hashtableCoun(countries, stdout);*/
     
     /*
     //SIMULATION
@@ -190,9 +193,7 @@ int main(int argc, char* argv[]){
     deletelist(&virus_list);
     free(citizens);
     free(countries);
-    citizens = NULL;
-    virus_list = NULL;
-/*  free(input_dir);*/
+
     
     close(fd_r);
     close(fd_w);
@@ -293,7 +294,6 @@ int store_records(int fd_r, char* pipename, Hashtable citizens, struct List** vi
 
         closedir(subdr);
         free(country_dir_name);
-        //free(count_name);
         
 
     }
@@ -309,19 +309,130 @@ int store_records(int fd_r, char* pipename, Hashtable citizens, struct List** vi
 
 
 
-void monitor_body(int fd_w, Hashtable citizens, struct List **viruslist, CountryHash countries){
+void monitor_body(int fd_w, int fd_r, Hashtable citizens, struct List **viruslist, CountryHash countries){
 
 
     int total_requests = 0;
     int accepted_req = 0;
     int rejected_req = 0;
 
-
+    char *command;
 
     while( 1 ){
 
 
-        if ( signal_num == 2){      //GOT A SIGUSR1 SIGNAL
+        if ( signal_num == 5){      //GOT SIGNAL FOR READING
+
+            //GET CHOSEN COMMAND
+            command = get_message(fd_r, bufferSize);
+
+            if ( strcmp(command, "travelRequest") == 0 ){
+
+                total_requests++;
+
+                //GET NECESSARY INFO
+                //get name of virus
+                char *virus = get_message(fd_r, bufferSize);
+                //get citizenID
+                char *citizenID = get_message(fd_r, bufferSize);
+
+
+                //get struct for virus
+                struct List* virusNode = getelemfromlist(*viruslist, virus);
+                if ( virusNode == NULL ){
+                    printf("No such Virus!\n");
+                    send_message(fd_w, "Error", strlen("Error")+1, bufferSize);
+                    continue;
+                }
+
+                //try to get a date of vaccination
+                char *date;
+                if ( (date = getDate_VacSkipList(virusNode->vaccinated, citizenID) ) != NULL ){
+                    //found
+                    printf("VACCINATED ON %s\n", date);
+                    
+                    //send answer "YES"
+                    send_message(fd_w, "YES", strlen("YES")+1, bufferSize);
+
+                    //send date
+                    send_message(fd_w, date, strlen(date)+1, bufferSize);
+
+                    accepted_req++;
+
+                } else {    //no record for this person
+                    printf("NOT VACCINATED\n");
+
+                    //send answer "NO"
+                    send_message(fd_w, "NO", strlen("NO")+1, bufferSize);
+
+                    rejected_req++;
+                }
+
+
+
+            } else if ( strcmp(command, "searchVaccinationStatus") == 0 ){
+
+                char *citizenID = get_message(fd_r, bufferSize);
+
+                struct Citizen *cit = hashtable_get(citizens, citizenID);
+
+                if ( cit == NULL ){     //citizen not in this monitor
+                    
+                    send_message(fd_w, "NOT FOUND", strlen("NOT FOUND")+1, bufferSize);
+
+
+                } else {        //citizen found
+
+                    send_message(fd_w, "FOUND", strlen("FOUND")+1, bufferSize);
+
+                    //send info
+                    char info[300];
+                    sprintf(info, "%s %s %s %s", cit->citizenID, cit->firstname, cit->lastname, cit->country);
+
+                    //send citizen details
+                    send_message(fd_w, info, strlen(info)+1, bufferSize);
+
+                    //send age
+                    sprintf(info, "%d", cit->age);
+                    send_message(fd_w, info, strlen(info)+1, bufferSize );
+
+
+                    struct List *temp = *viruslist;
+                    char *vac_date;
+                    
+
+                    while ( temp != NULL){  //for every virus
+
+                        vac_date = getDate_VacSkipList( temp->vaccinated, citizenID );
+
+                        if ( vac_date == NULL ){    //not yet vaccinated
+                            
+                            sprintf(info,"%s %s", temp->name, " NOT YET VACCINATED");
+
+                        } else {        //vaccinated
+
+                            sprintf(info,"%s %s %s", temp->name, " VACCINATED ON ", vac_date);
+
+                        }
+
+                        send_message(fd_w, info, strlen(info)+1, bufferSize);
+                        
+                    }
+
+                    //send "DONE" message
+                    send_message(fd_w, "DONE", strlen("DONE")+1, bufferSize);
+
+                }
+
+
+                free(citizenID);
+
+            }
+
+
+            signal_num = 0;
+
+        } else if ( signal_num == 2){      //GOT A SIGUSR1 SIGNAL
 
             printf("IN BODY: SIGUSR1\n");
             
@@ -335,16 +446,12 @@ void monitor_body(int fd_w, Hashtable citizens, struct List **viruslist, Country
             }
 
             //Αποστολή των Bloomfilter (για κάθε ίωση)
-            /*if (send_bloomfilters(fd_w, viruslist, bufferSize) == -1){
+            if (send_bloomfilters(fd_w, *viruslist, bufferSize) == -1){
                 perror("ERROR in sending bloomfilters");
                 exit(1);
-            }*/
+            }
 
-
-
-            //Στείλε τα νέα bloomfilter στον parent
-
-            
+           
             signal_num = 0;
 
         } else if ( signal_num == 3 ){      //GOT A SIGINT/SIGQUIT SIGNAL
@@ -368,6 +475,7 @@ void monitor_body(int fd_w, Hashtable citizens, struct List **viruslist, Country
 
             fprintf(logfile, "%d\n%d\n%d", total_requests, accepted_req, rejected_req);
             
+            free(filename);
             signal_num = 0;
             return;
 
@@ -492,7 +600,7 @@ int read_new_files(Hashtable citizens, struct List** virus_list, CountryHash cou
                     country_str->num_of_files_read = num_of_files;
 
                     closedir(subdr);
-
+                    free(foldername);
 
                 }
             }
