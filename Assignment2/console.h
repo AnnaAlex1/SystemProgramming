@@ -17,7 +17,7 @@ void travel_Req(struct MonitorStruct *commun, CountryMainHash countries, size_t 
                  int *rejected_req, int *accepted_req, struct RequestsList **req_list);
 
 int datecmp(char* date1, char* date2);
-int in_last_six(char *date);
+int in_prev_six(char *date1, char *date2);
 char *get_cur_date();
 
 #endif

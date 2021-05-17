@@ -240,6 +240,7 @@ int send_message(int fd, const void* message, int size_of_message, size_t buffer
     //send message's size
     char size_str[10];
     sprintf(size_str, "%d", size_of_message);
+    
     if ( write(fd, size_str, buffersize) == -1 ){
         perror("ERROR: in writing in Named Pipe (size of message)");
         return -1;
@@ -327,8 +328,8 @@ int send_bloomfilters(int fd, struct List* virus_list, size_t buffersize){
 
 int get_bloomfilters(struct MonitorStruct *commun, size_t buffersize, int numMonitors, int i, int replace){
 
-    char *virusname = NULL; // = malloc(buffersize); 
-    char *bloomfilter; // = malloc(buffersize); 
+    char *virusname = NULL;
+    char *bloomfilter;  
     unsigned int *bloomf;
     bloomf = malloc( size_in_bytes + sizeof(int));
 
@@ -361,9 +362,9 @@ int get_bloomfilters(struct MonitorStruct *commun, size_t buffersize, int numMon
 
         
         if (replace){   //if there is an older version of the bloomfilter
-            
+
             replace_bloom(commun[i].viruses, virusname, bloomf);
-        
+
         } else {    //initial send of bloomfilter
             
             //Add Viruses and corresponding Bloomfilters to list

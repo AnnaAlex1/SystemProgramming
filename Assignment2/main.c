@@ -350,11 +350,6 @@ int main( int argc, char *argv[]){
     console(commun, countries, bufferSize);
 
 
-    //SIGPROCMASK ΚΑΤΑ ΤΗΝ ΑΠΟΣΤΟΛΗ ΔΕΔΟΜΕΝΩΝ -> ΜΠΛΟΚΑΡΙΣΜΑ ΜΗΝΥΜΑΤΩΝ
-
- 
-
-
     hashtable_destroyCounMain(countries);
     free(countries);
     free(input_dir);
@@ -397,7 +392,7 @@ void distribute_subdirs(char * input_dir, struct MonitorStruct *commun, CountryM
             //put country in hashtable
             hashtable_addCounMain(countries, dsub_dir->d_name, commun[i].pid);
 
-            printf("    Opening Directory: %s\n", dsub_dir->d_name);
+            //printf("    Opening Directory: %s\n", dsub_dir->d_name);
 
             path = malloc(sizeof(char) * ( strlen(dsub_dir->d_name) + strlen(input_dir) + 2 ) );
             strcpy(path, input_dir);
@@ -421,7 +416,7 @@ void distribute_subdirs(char * input_dir, struct MonitorStruct *commun, CountryM
         send_message(commun[i].fd_w, mes, strlen("DONE")+1, bufferSize);
     }
     free(mes);
-    printf("Finished Sending DONE signal\n");
+    //printf("Finished Sending DONE signal\n");
 
     closedir(maindr);
 }

@@ -23,7 +23,6 @@ struct BloomFilter* init_Bloom(){
         bf->array[i] = 0;
     }
     
-
     return bf;
 }
 

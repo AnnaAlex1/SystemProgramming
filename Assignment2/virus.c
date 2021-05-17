@@ -187,9 +187,11 @@ void replace_bloom(struct VirusesListMain* virus_list, char* name, unsigned int 
 
         if ( strcmp(virus_list->name, name) == 0 ){
 
-            memcpy(virus_list->vacc_bloom, bloom, (virus_list->vacc_bloom->num_of_pos)*sizeof(int));
-        
+            memcpy(virus_list->vacc_bloom->array, bloom, (virus_list->vacc_bloom->num_of_pos)*sizeof(int));
+            break;
         }
+
+        virus_list = virus_list->next;
     }
 
 }
