@@ -6,12 +6,12 @@
 
 
 struct MonitorStruct{
-    int fd_w;
-    int fd_r;
-    int pid;
-    char *fifoname_w;
-    char *fifoname_r;
-    struct VirusesListMain *viruses;
+    int fd_w;   //file descriptor for writing
+    int fd_r;   //file descriptor for reading
+    int pid;    //monitor's process id
+    char *fifoname_w;       //named pipe's filename (for writing)
+    char *fifoname_r;       //named pipe's filename (for reading)
+    struct VirusesListMain *viruses;    //list of viruses+bf for this monitor
 };
 
 

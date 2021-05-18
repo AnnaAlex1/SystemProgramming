@@ -42,11 +42,10 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
 
         printf("\nPlease give instructions\n");
 
-        if (signal_num == 0){
+        if (signal_num == 0){   // no signal received
             fgets(input,500, stdin);
         }
 
-        //printf("input: %s\n",input);
 
         //EXIT
         first_word = strtok(input, "\n");
@@ -67,10 +66,7 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
 
             //WAIT FOR ALL MONITORS TO TERMINATE
             for (int i = 0; i < numMonitors; i++){
-                    waitpid(commun[i].pid, &status, 0);
-                    /*printf("PID: %d, status: %d\n",commun[i].pid, status);
-                    printf("WTERMSIG(status)= %d\n", WTERMSIG(status));
-                    printf("WIFEXITED(status)= %d\n", WIFEXITED(status));*/
+                waitpid(commun[i].pid, &status, 0);
             }
             
 
@@ -106,8 +102,9 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
                 perror("ERROR in opening file 'LOGFILE'");
                 return;
             }
-            print_hashtableCounMain(countries, logfile);
 
+            //print in log_file
+            print_hashtableCounMain(countries, logfile);
             fprintf(logfile, "%d\n%d\n%d", total_requests, accepted_req, rejected_req);
             
 

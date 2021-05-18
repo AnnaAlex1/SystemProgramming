@@ -20,7 +20,7 @@ void handle_recreate(int sig){
 
     if ( signal_num == 0){      //if it's not used by another signal
         signal_num = 1;
-    } else {                    //case: /exit
+    } else {                    //case: command /exit
         return;
     }
 
@@ -46,11 +46,9 @@ void handle_recreate(int sig){
 
 
 
-void handle_ParentFin(int sig){                 //Parent
+void handle_ParentFin(int sig){
 
-    if ( signal_num == 0){      //if it's not used by another signal
-        signal_num = 4;
-    } 
+    signal_num = 4;
 
     printf("Printing log_file from Parent\n");
 
@@ -82,11 +80,12 @@ void handle_MonitorFin(int sig){
     }
 
     printf("Printing log_file from Monitor\n");
+
 }
 
 
 
-void handle_needtoread(int sig){
+void handle_needtoread(int sig){    //signal for reading
 
     if ( signal_num == 0){
         signal_num = 5;

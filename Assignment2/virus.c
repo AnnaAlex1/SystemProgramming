@@ -185,8 +185,9 @@ void replace_bloom(struct VirusesListMain* virus_list, char* name, unsigned int 
     
     while ( virus_list != NULL ){
 
-        if ( strcmp(virus_list->name, name) == 0 ){
+        if ( strcmp(virus_list->name, name) == 0 ){ //find corresponding virus
 
+            //replace
             memcpy(virus_list->vacc_bloom->array, bloom, (virus_list->vacc_bloom->num_of_pos)*sizeof(int));
             break;
         }

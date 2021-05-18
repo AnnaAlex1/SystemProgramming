@@ -41,7 +41,7 @@ void create_child(int i, int buffersize){
     extw_pname = malloc( sizeof(char) * ( strlen(w_pname) + strlen(number) + 1) );
     strcpy(extw_pname, w_pname);
     strcat(extw_pname, number);       //add counter at the end of string
-    printf("Name: %s\n", extw_pname);
+    //printf("Name: %s\n", extw_pname);
 
 
     //CREATE NAMED PIPE FOR WRITING
@@ -68,7 +68,7 @@ void create_child(int i, int buffersize){
 
 
 
-    //CREATE NAMED PIPE FOR WRITING
+    //CREATE NAMED PIPE FOR READING
     if ( mkfifo( extr_pname, 0666) == -1){
                     
         if ( errno != EEXIST ){
@@ -119,10 +119,9 @@ void create_child(int i, int buffersize){
 
 
     char mes_to_send[10];
-    sprintf(mes_to_send, "%d", buffersize);
-    //printf("MAIN PROGRAM to send buffersize: %s\n", mes_to_send);
 
     //SEND BUFFERSIZE
+    sprintf(mes_to_send, "%d", buffersize);
     send_message(commun[i].fd_w, mes_to_send, strlen(mes_to_send)+1, sizeof(long));
 
     //SEND BLOOMSIZE
@@ -147,7 +146,6 @@ void create_child(int i, int buffersize){
 char* get_message(int fd, size_t buffersize){
 
 
-    //char *complete_mess;
     char *message;
     message = malloc( buffersize );
 
@@ -169,15 +167,10 @@ char* get_message(int fd, size_t buffersize){
 
     //get number of rounds to perform
     int rounds = ceil( (double)total_message / (double)buffersize );
-    //printf("GET MESSAGE: Rounds: %d\n", rounds);
-
 
 
     for (int i = 0; i < rounds; i++){
     
-
-        //printf("Read no %d\n", i);
-
         //read i-th part of message
         res = read( fd, message, buffersize );
         if ( res < 0 ){
@@ -203,7 +196,6 @@ char* get_message(int fd, size_t buffersize){
             if ( i != 0 ){ //not first round
                 cur_mes = realloc(cur_mes, (i+1)*buffersize);
             }
-            //printf("Realloc size to realloc: %ld\n",  (i+1)*buffersize);
 
             memcpy(cur_mes + i*buffersize, message, buffersize);
 
@@ -235,7 +227,6 @@ int send_message(int fd, const void* message, int size_of_message, size_t buffer
 
     //get number of rounds to perform
     int rounds = ceil( (double)size_of_message / (double)buffersize );
-    //printf("SEND MESSAGE Rounds: %d\n", rounds);  
 
     //send message's size
     char size_str[10];
@@ -246,7 +237,6 @@ int send_message(int fd, const void* message, int size_of_message, size_t buffer
         return -1;
     }
 
-    //printf("Size of message to send: %d     %s\n", size_of_message, size_str);
 
     for( int i=0; i<rounds; i++ ){
 
@@ -301,11 +291,7 @@ int send_bloomfilters(int fd, struct List* virus_list, size_t buffersize){
     while( virus_temp != NULL){
 
         //send name of virus
-        //printf("SENDD: VirusTemp->name = %s\n", virus_temp->name);
         send_message(fd, virus_temp->name, strlen(virus_temp->name)+1, buffersize);       
-
-        //print_Bloom( *(virus_temp->vacc_bloom->array));
-        //print_Bloom( (struct bloomfilter) *message);
 
         //send bloomfilter for virus
         send_message(fd, virus_temp->vacc_bloom->array, size_in_bytes+sizeof(int), buffersize);
@@ -334,45 +320,54 @@ int get_bloomfilters(struct MonitorStruct *commun, size_t buffersize, int numMon
     bloomf = malloc( size_in_bytes + sizeof(int));
 
 
+    int pos_in_commun;
+
+    if ( !replace ){    //case: first read of bloomfilter, 'i' represents the file_des itself
+
+        //find the position in commun struct
+        for (int z = 0; z < numMonitors; z++){
+            if ( commun[z].fd_r == i ){
+                pos_in_commun = z;
+            }
+        }
+
+    } else {
+        pos_in_commun = i;
+    }
+
+
     while( 1 ){
 
         //get name of virus
-        virusname = get_message(commun[i].fd_r, buffersize);
-        //printf("GOT: virusname: %s\n", virusname);
+        virusname = get_message(commun[pos_in_commun].fd_r, buffersize);
 
         if ( virusname == NULL ){
             perror("ERROR in getting name of virus");
             return -1;
-        } else if ( strcmp(virusname, "ending") == 0){
-            printf("ERROR2 in getting name of virus\n");
-            return -1;
         }
 
-        //printf("LAST: Message from buffer: %s\n", virusname);
         if ( strcmp(virusname, "DONE") == 0 ){
-            printf("Done getting Bloomfilters from Monitor %d\n", commun[i].pid);
+            printf("Done getting Bloomfilters from Monitor %d\n", commun[pos_in_commun].pid);
             free(virusname);
             break;
         }
 
         //get bloomfilter of virus
-        bloomfilter = get_message(commun[i].fd_r,buffersize);
+        bloomfilter = get_message(commun[pos_in_commun].fd_r,buffersize);
 
         memcpy(bloomf, bloomfilter, size_in_bytes + sizeof(int));
 
         
         if (replace){   //if there is an older version of the bloomfilter
 
-            replace_bloom(commun[i].viruses, virusname, bloomf);
+            replace_bloom(commun[pos_in_commun].viruses, virusname, bloomf);
 
         } else {    //initial send of bloomfilter
             
             //Add Viruses and corresponding Bloomfilters to list
-            addinVirMain(&(commun[i].viruses), virusname, bloomf);
+            addinVirMain(&(commun[pos_in_commun].viruses), virusname, bloomf);
         }
-        
-        //print_Bloom(*(commun[i].viruses->vacc_bloom));
-        
+              
 
         free(virusname);
         virusname = NULL;
@@ -381,10 +376,6 @@ int get_bloomfilters(struct MonitorStruct *commun, size_t buffersize, int numMon
     }
 
 
-
-    
-    
-   
     free(bloomf);
     return 0;
    

@@ -24,7 +24,7 @@
 
 size_t bufferSize;
 
-extern int size_in_bytes;   //-s
+extern int size_in_bytes;
 extern int signal_num;
 
 
@@ -39,7 +39,7 @@ int read_new_files(Hashtable citizens, struct List** virus_list, CountryHash cou
 
 int main(int argc, char* argv[]){
 
-    printf("Hello from Monitor pid:%d with pipe %s and %s!\n", getpid(), argv[1], argv[2]);
+    printf("Hello from Monitor pid:%d with pipes %s and %s!\n", getpid(), argv[1], argv[2]);
 
 
     //check for right number of arguments
@@ -76,19 +76,19 @@ int main(int argc, char* argv[]){
 
 
     bufferSize = atoi(message);
-    printf("Monitor Received BUFFERSIZE of %ld\n", bufferSize);
+    //printf("Monitor Received BUFFERSIZE of %ld\n", bufferSize);
 
     free(message);
 
-    ///////////////////////////////////////????
+    ///////////////////////////////////////
     //GET BLOOMSIZE 
-    message = get_message( fd_r,  bufferSize);         //get bufferSize
+    message = get_message( fd_r,  bufferSize);         //get bloomSize
     if ( strcmp(message, "error") == 0){
         exit(2);
     }
 
     size_in_bytes = atoi(message);
-    printf("Monitor Received BLOOMSIZE of %d\n", size_in_bytes);
+    //printf("Monitor Received BLOOMSIZE of %d\n", size_in_bytes);
 
     free(message);
     ////////////////////////////////////////////
@@ -111,7 +111,6 @@ int main(int argc, char* argv[]){
     
 
     //ΑΡΧΙΚΟΠΟΙΗΣΗ: Αναμονή για χώρες
-    //διαβάζει μέσω των named pipes τις χώρες που θα αναλάβει
     if ( store_records(fd_r, argv[1], citizens, &virus_list, countries) == -1 ){
         printf("ERROR in storing records");
         exit(1);
@@ -136,7 +135,7 @@ int main(int argc, char* argv[]){
 
     static struct sigaction sa1;        //SIGINT
     static struct sigaction sa2;        //SIGQUIT
-    static struct sigaction sa3;        //SIGUSR1      kill -s USR1 pid
+    static struct sigaction sa3;        //SIGUSR1
     static struct sigaction sa4;
 
     sa1.sa_handler = handle_MonitorFin;
@@ -211,7 +210,7 @@ int store_records(int fd_r, char* pipename, Hashtable citizens, struct List** vi
         //GET DIRECTORY
         country_dir_name = get_message(fd_r, bufferSize);
 
-        printf("Monitor with %s gets directory: %s\n", pipename, country_dir_name);
+        //printf("Monitor with %s gets directory: %s\n", pipename, country_dir_name);
 
         //CHECK IF DONE
         if ( strcmp(country_dir_name, "DONE") == 0 ){
@@ -255,15 +254,11 @@ int store_records(int fd_r, char* pipename, Hashtable citizens, struct List** vi
                 strcat(filepath, "/");
                 strcat(filepath, dfiles->d_name);
 
-                //printf("file to open: %s\n", filepath);
-
-                //printf("READFILE: %s\n", filepath);
+                //read file
                 if ( read_file(filepath, citizens, virus_list, count_name) != 0 ){
                     perror("ERROR: Unsuccessful Reading!");
                     return -1;
-                } /*else {
-                   printf("Successful reading of file %s!\n", dfiles->d_name); 
-                }*/
+                }
                 
 
                 free(filepath);
@@ -272,7 +267,8 @@ int store_records(int fd_r, char* pipename, Hashtable citizens, struct List** vi
 
 
         }
-            
+        
+        //number of files for this country
         set_num_of_files(countries, count_name, num_of_files);
 
         closedir(subdr);
@@ -418,15 +414,12 @@ void monitor_body(int fd_w, int fd_r, Hashtable citizens, struct List **viruslis
 
         } else if ( signal_num == 2){      //GOT A SIGUSR1 SIGNAL
 
-            printf("IN BODY: SIGUSR1\n");
             
-            //Λήψη SIGUSR
             //ΔΙΑΒΑΣΕ ΝΕΑ ΑΡΧΕΙΑ
             //Γέμισε τις δομές
 
             if ( read_new_files(citizens, viruslist, countries) == -1){
                 printf("ERROR in Reading new Files\n");
-
             }
 
             printf("Finished with reading new Files!\n");
@@ -442,8 +435,7 @@ void monitor_body(int fd_w, int fd_r, Hashtable citizens, struct List **viruslis
 
         } else if ( signal_num == 3 ){      //GOT A SIGINT/SIGQUIT SIGNAL
 
-            printf("IN BODY: SIGINT/SIGQUIT\n");
-            
+            //build log_file's name            
             int pid = getpid();
             char pid_str[7];
             sprintf(pid_str, "%d", pid);
@@ -457,12 +449,14 @@ void monitor_body(int fd_w, int fd_r, Hashtable citizens, struct List **viruslis
                 perror("ERROR in opening file 'LOGFILE'");
                 return;
             }
-            print_hashtableCoun(countries, logfile);
 
+            //print info in log_file
+            print_hashtableCoun(countries, logfile);
             fprintf(logfile, "%d\n%d\n%d", total_requests, accepted_req, rejected_req);
             
+
             free(filename);
-            signal_num = 0;
+            signal_num = 0; //reset signal number
             return;
 
 
@@ -501,16 +495,16 @@ int read_new_files(Hashtable citizens, struct List** virus_list, CountryHash cou
 
     struct BucketCoun* current_buc;
 
-    //FOR EVERY COUNTRY
+    //SEARCH HASHTABLE OF COUNTRIES
     for (int i = 0; i < TABLE_SIZE; i++)
     {   
         current_buc = countries[i].bucket;
 
         while ( current_buc != NULL){
 
-            for (int j = 0; j < BUC_SIZE; j++){
+            for (int j = 0; j < BUC_SIZE; j++){ 
 
-                if (current_buc->element[j].name != NULL){
+                if (current_buc->element[j].name != NULL){ //for every country
 
                     country_str = &(current_buc->element[j]);
 

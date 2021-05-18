@@ -281,55 +281,123 @@ int main( int argc, char *argv[]){
     countries = hashtable_createCounMain();
 
 
-    //Δημιουργία named pipes
+    //Δημιουργία named pipes & monitor processes
 
-    commun = malloc( sizeof(struct MonitorStruct)*numMonitors);
+    commun = malloc( sizeof(struct MonitorStruct)*numMonitors); //allocation of communication struct
     for (int i = 0; i < numMonitors; i++){
         commun[i].viruses = NULL;
     }
     
+
     for (int i=0; i<numMonitors; i++){
-
         create_child(i, bufferSize);
-
     }
 
 
     
+    //Distribution of folders
     printf("\nDistribution of folders:\n");
     distribute_subdirs(input_dir, commun, countries);
 
     
     
     //ΑΝΑΜΟΝΗ ΓΙΑ BLOOMFILTERS
+
+    //για select:
+    fd_set ready_set;
+    fd_set current;
+
+    //initialization
+    FD_ZERO(&current);
+
+    //add file descriptors to current set
+    for (int i = 0; i < numMonitors; i++){
+        FD_SET(commun[i].fd_r, &current);       
+    }
+
+
     for (int i = 0; i < numMonitors; i++){      //for each monitor
 
-        if (get_bloomfilters(commun, bufferSize, numMonitors, i, 0) == -1){
-            perror("ERROR in getting bloomfilters");
+
+        ready_set = current;
+
+        if ( select(FD_SETSIZE, &ready_set, NULL, NULL, NULL) < 0 ){
+            perror("ERROR in selecting ready file descriptors\n");
             exit(1);
         }
 
+        for ( int j=0; j<FD_SETSIZE; j++){
+            if ( FD_ISSET(j, &ready_set) ){ //found a ready fd
+
+                if (get_bloomfilters(commun, bufferSize, numMonitors, j, 0) == -1){
+                    perror("ERROR in getting bloomfilters");
+                    exit(1);
+                }
+                
+                FD_CLR(j, &current);    //remove file descriptor from set
+
+                break;
+            }
+
+        }
+
+
+
     }
+
+
 
     
     //ΛΗΨΗ ΜΗΝΥΜΑΤΟΣ ΕΤΟΙΜΟΤΗΤΑΣ
+
+    //initialization
+    FD_ZERO(&current);
+
+    //add file descriptors to current set
+    for (int i = 0; i < numMonitors; i++){
+        FD_SET(commun[i].fd_r, &current);       
+    }
+
     char *ready = NULL;
+
     for (int i = 0; i < numMonitors; i++){
 
-        ready = get_message(commun[i].fd_r, bufferSize);
-        if ( strcmp(ready, "READY") != 0 ){
-            printf("Something Went Wrong!\n");
-        } else {
-            printf("Monitor %d is ready!\n", commun[i].pid);
+        ready_set = current;
+
+        if ( select(FD_SETSIZE, &ready_set, NULL, NULL, NULL) < 0 ){
+            perror("ERROR in selecting ready file descriptors\n");
+            exit(1);
         }
-        
-        free(ready);
+
+
+        for ( int j=0; j<FD_SETSIZE; j++){
+            if ( FD_ISSET(j, &ready_set) ){ //found a ready fd
+
+
+                ready = get_message(j, bufferSize);
+                if ( strcmp(ready, "READY") != 0 ){
+                    printf("Something Went Wrong!\n");
+                } else {
+                    printf("Monitor %d is ready!\n", commun[i].pid);
+                }
+                
+                free(ready);
+
+
+                FD_CLR(j, &current);    //remove file descriptor from set
+
+                break;
+            }
+
+        }     
+
+
     }
     
 
-    static struct sigaction sa1;        
-    static struct sigaction sa2;        
-    static struct sigaction sa3;        //SIGCHLD   kill -s CHLD pid
+    static struct sigaction sa1;        //SIGINT  
+    static struct sigaction sa2;        //SIGQUIT 
+    static struct sigaction sa3;        //SIGCHLD
 
     sa1.sa_handler = handle_ParentFin;
     sigfillset (&(sa1.sa_mask));
@@ -416,7 +484,6 @@ void distribute_subdirs(char * input_dir, struct MonitorStruct *commun, CountryM
         send_message(commun[i].fd_w, mes, strlen("DONE")+1, bufferSize);
     }
     free(mes);
-    //printf("Finished Sending DONE signal\n");
 
     closedir(maindr);
 }

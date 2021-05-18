@@ -41,7 +41,7 @@ void print_hashtableCoun(CountryHash ht, FILE* stream);
 
 struct CountryMain{
     char *name;
-    int pid;
+    int pid;        //pid of monitor handling this country
 };
 
 

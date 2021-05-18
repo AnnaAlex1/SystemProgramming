@@ -6,7 +6,6 @@
 
 void addRequest(struct RequestsList** req_list, char* virus, char* date, char* country, int approved){
 
-    //printf("Virus List:  %s\n", virus);
 
     struct RequestsList* newnode;
     newnode = malloc(sizeof(struct RequestsList));
