@@ -16,6 +16,8 @@ void travel_Req(struct MonitorStruct *commun, CountryMainHash countries, size_t 
                 char *virusName, char *countryFrom, char *citizenID, char *date, char* countryTo,
                  int *rejected_req, int *accepted_req, struct RequestsList **req_list);
 
+void reassign_countries(struct MonitorStruct *commun, CountryMainHash ht, int prev_pid, int com_pos, size_t bufferSize);
+
 int datecmp(char* date1, char* date2);
 int in_prev_six(char *date1, char *date2);
 char *get_cur_date();

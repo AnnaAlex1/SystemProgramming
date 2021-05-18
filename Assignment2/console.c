@@ -53,7 +53,52 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
             continue;
         }
 
-        if ( (strcmp( first_word, "/exit") == 0) || signal_num == 4 ){               //EXIT
+
+
+
+        //SIGCHLD
+
+        if ( signal_num == 1){      //case: SIGCHLD
+
+            for (int i = 0; i < numMonitors; i++){
+
+                if ( commun[i].fd_r == -1 ){    // found info of dead child
+
+                    int prev_pid = commun[i].pid;
+
+                    create_child(i, bufferSize);    //create new process
+
+                    //re-assign countries to new child
+                    reassign_countries(commun, countries, prev_pid, i, bufferSize);
+
+                    //get bloomfilters
+                    if (get_bloomfilters(commun, bufferSize, numMonitors, commun[i].fd_r, 0) == -1){
+                        perror("ERROR in getting bloomfilters");
+                        exit(1);
+                    }
+
+                    char *ready = get_message(commun[i].fd_r, bufferSize);
+                    if ( strcmp(ready, "READY") != 0 ){
+                        printf("Something Went Wrong!\n");
+                    } else {
+                        printf("Monitor %d is ready!\n", commun[i].pid);
+                    }
+                    
+                    free(ready);
+
+                }
+                
+            }
+            
+
+            signal_num = 0;
+
+            continue; 
+        }
+
+
+
+        if ( (strcmp( first_word, "/exit") == 0) || signal_num == 4 ){        //EXIT
 
             int status;
             
@@ -616,5 +661,69 @@ int in_prev_six(char *date1, char *date2){
 
  
 
+
+}
+
+
+
+void reassign_countries(struct MonitorStruct *commun, CountryMainHash ht, int prev_pid, int com_pos, size_t bufferSize){
+
+
+    if (ht == NULL){
+        printf("Hashtable is Empty!\n");
+        return;
+    }
+
+    char* foldername;
+
+    struct BucketCounMain* current_buc;
+
+    for (int i = 0; i < TABLE_SIZE; i++){   
+        
+        current_buc = ht[i].bucket;
+
+        while ( current_buc != NULL){
+
+            for (int j = 0; j < BUC_SIZE; j++){
+                
+                if (current_buc->element[j].name != NULL){
+
+
+                    if ( current_buc->element[j].pid == prev_pid ){ //found a country that was previously assigned to this
+
+
+                        //Find country's folder name
+                        foldername = malloc( sizeof(char) * ( strlen("inputfolder") + strlen(current_buc->element[j].name) + 2 ));
+
+                        strcpy(foldername, "inputfolder");
+                        strcat(foldername, "/");
+                        strcat(foldername, current_buc->element[j].name);
+
+                        //send foldername
+                        send_message(commun[com_pos].fd_w, foldername, strlen(foldername)+1, bufferSize);
+
+                        free(foldername);
+                    }
+
+
+                }
+            }
+            
+            
+            current_buc = current_buc->next_buc;
+
+            
+
+        }
+           
+    } 
+
+    printf("\nFinished Distribution\n");
+    char *mes = malloc(bufferSize);
+    strcpy(mes, "DONE");
+    for (int i = 0; i < numMonitors; i++){
+        send_message(commun[com_pos].fd_w, mes, strlen("DONE")+1, bufferSize);
+    }
+    free(mes);
 
 }
