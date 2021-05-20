@@ -414,7 +414,7 @@ void travel_Req(struct MonitorStruct *commun, CountryMainHash countries, size_t 
                     } else {
                             printf("REQUEST REJECTED – YOU WILL NEED ANOTHER VACCINATION BEFORE TRAVEL DATE\n");
                             approved = 0;
-                            rejected_req++;
+                            (*rejected_req)++;
                     }
 
                     free(vaccin_date);
@@ -423,7 +423,7 @@ void travel_Req(struct MonitorStruct *commun, CountryMainHash countries, size_t 
                     
                     printf("REQUEST REJECTED - YOU ARE NOT VACCINATED (SKIPLIST)\n");
                     approved = 0;
-                    rejected_req++;
+                    (*rejected_req)++;
 
                 }
 

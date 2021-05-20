@@ -76,7 +76,7 @@ int main(int argc, char* argv[]){
 
 
     bufferSize = atoi(message);
-    printf("Monitor Received BUFFERSIZE of %ld\n", bufferSize);
+    //printf("Monitor Received BUFFERSIZE of %ld\n", bufferSize);
 
     free(message);
 
@@ -88,7 +88,7 @@ int main(int argc, char* argv[]){
     }
 
     size_in_bytes = atoi(message);
-    printf("Monitor Received BLOOMSIZE of %d\n", size_in_bytes);
+    //printf("Monitor Received BLOOMSIZE of %d\n", size_in_bytes);
 
     free(message);
     ////////////////////////////////////////////
