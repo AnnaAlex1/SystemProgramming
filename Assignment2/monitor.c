@@ -76,7 +76,7 @@ int main(int argc, char* argv[]){
 
 
     bufferSize = atoi(message);
-    //printf("Monitor Received BUFFERSIZE of %ld\n", bufferSize);
+    printf("Monitor Received BUFFERSIZE of %ld\n", bufferSize);
 
     free(message);
 
@@ -88,7 +88,7 @@ int main(int argc, char* argv[]){
     }
 
     size_in_bytes = atoi(message);
-    //printf("Monitor Received BLOOMSIZE of %d\n", size_in_bytes);
+    printf("Monitor Received BLOOMSIZE of %d\n", size_in_bytes);
 
     free(message);
     ////////////////////////////////////////////
@@ -184,6 +184,7 @@ int main(int argc, char* argv[]){
     close(fd_r);
     close(fd_w);
 
+    printf("Monitor pid:%d exiting...\n", getpid());
 
     return 0;
 }
@@ -297,10 +298,12 @@ void monitor_body(int fd_w, int fd_r, Hashtable citizens, struct List **viruslis
 
     char *command;
 
+    printf("\nMonitor %d Waiting For Instructions\n", getpid());
+
     while( 1 ){
 
 
-        if ( signal_num == 5){      //GOT SIGNAL FOR READING
+        if ( signal_num == 5){      // SIGNAL FOR READING
 
             //GET CHOSEN COMMAND
             command = get_message(fd_r, bufferSize);
@@ -454,10 +457,11 @@ void monitor_body(int fd_w, int fd_r, Hashtable citizens, struct List **viruslis
             print_hashtableCoun(countries, logfile);
             fprintf(logfile, "%d\n%d\n%d", total_requests, accepted_req, rejected_req);
             
-
+            fclose(logfile);
             free(filename);
             signal_num = 0; //reset signal number
-            return;
+            
+            //return;
 
 
         } 
@@ -518,6 +522,8 @@ int read_new_files(Hashtable citizens, struct List** virus_list, CountryHash cou
 
                     if ( (subdr = opendir(foldername)) == NULL ) { perror("Sub-Directory cannot open!"); exit(1); }
    
+                    //get previous number of files in country
+                    num_of_files = country_str->num_of_files_read;
 
                     //FOR EVERY FILE in the directory
                     while ( (dfiles = readdir(subdr)) != NULL ){
@@ -526,11 +532,6 @@ int read_new_files(Hashtable citizens, struct List** virus_list, CountryHash cou
 
                             
                             file_number = atoi( strchr(dfiles->d_name, '-') + 1);
-
-
-                            //get previous number of files in country
-                            num_of_files = country_str->num_of_files_read;
-
 
 
                             //if filenumber greater than initial number of files in country

@@ -32,7 +32,7 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
 
     char *virusName;
 
-    int total_requests=0, accepted_req=0, rejected_req=0;
+    int accepted_req=0, rejected_req=0;
     
     struct RequestsList *req_list = NULL;
 
@@ -150,7 +150,7 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
 
             //print in log_file
             print_hashtableCounMain(countries, logfile);
-            fprintf(logfile, "%d\n%d\n%d", total_requests, accepted_req, rejected_req);
+            fprintf(logfile, "%d\n%d\n%d", accepted_req+rejected_req, accepted_req, rejected_req);
             
 
             //FREE MEMORY
@@ -268,7 +268,12 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
 
             int found = 0;
 
-            char *citizenID = strtok(NULL, "\n");      
+            char *citizenID = strtok(NULL, "\n"); 
+
+            if (citizenID == NULL){
+                printf("Please give a CitizenID\n");
+                continue;
+            }     
 
             for (int i = 0; i < numMonitors; i++){
 
@@ -277,6 +282,7 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t bu
                 //send command
                 send_message(commun[i].fd_w, "searchVaccinationStatus", strlen("searchVaccinationStatus")+1, bufferSize);
                 
+
                 //send citizenID
                 send_message(commun[i].fd_w, citizenID, strlen(citizenID)+1, bufferSize);
             }
@@ -350,9 +356,9 @@ void travel_Req(struct MonitorStruct *commun, CountryMainHash countries, size_t 
     }
     
     for (int i = 0; i < numMonitors; i++){
+
         
         if ( commun[i].pid == cs->pid ){    //found monitor that handled countryfrom
-
 
             //find virus struct
             struct VirusesListMain *vir_elem;
@@ -702,6 +708,9 @@ void reassign_countries(struct MonitorStruct *commun, CountryMainHash ht, int pr
                         //send foldername
                         send_message(commun[com_pos].fd_w, foldername, strlen(foldername)+1, bufferSize);
 
+                        //change pid in country_struct
+                        current_buc->element[j].pid = commun[com_pos].pid;
+                        
                         free(foldername);
                     }
 
@@ -721,9 +730,8 @@ void reassign_countries(struct MonitorStruct *commun, CountryMainHash ht, int pr
     printf("\nFinished Distribution\n");
     char *mes = malloc(bufferSize);
     strcpy(mes, "DONE");
-    for (int i = 0; i < numMonitors; i++){
-        send_message(commun[com_pos].fd_w, mes, strlen("DONE")+1, bufferSize);
-    }
+    send_message(commun[com_pos].fd_w, mes, strlen("DONE")+1, bufferSize);
+
     free(mes);
 
 }

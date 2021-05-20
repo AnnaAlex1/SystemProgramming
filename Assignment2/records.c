@@ -41,8 +41,7 @@ int read_file(char* filename, Hashtable ht, struct List** virus_list, char *coun
         citizen.citizenID = strtok(record, " ");
         citizen.firstname = strtok(NULL, " ");
         citizen.lastname = strtok(NULL, " ");
-        citizen.country = malloc(sizeof(char)*(strlen(country)+1));
-        strcpy(citizen.country, country);
+        citizen.country = strtok(NULL, " ");
         char *age_str = strtok(NULL, " ");
         virus = strtok(NULL, " ");
         char *done_str = strtok(NULL, "\n");    //handling case date is missing
@@ -80,8 +79,6 @@ int read_file(char* filename, Hashtable ht, struct List** virus_list, char *coun
 
         insert_record(ht, virus_list, citizen, virus, done, date, false);
         
-        free(citizen.country);
-
     }
     
     fclose(cit_file);

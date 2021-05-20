@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 
 int signal_num = 0;
@@ -32,6 +33,9 @@ void handle_recreate(int sig){
     for (int i = 0; i < numMonitors; i++){
         
         if (commun[i].pid == child_pid){
+
+            close(commun[i].fd_r);
+            close(commun[i].fd_w);
 
             commun[i].fd_r = -1;
             commun[i].fd_w = -1;

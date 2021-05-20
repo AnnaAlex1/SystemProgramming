@@ -107,14 +107,14 @@ do
     #current_rec=`echo "${citizens[$i]}" | cut -d " " -f 1-3, 5-`
     country=`echo "${citizens[$i]}" | cut -d " " -f $N`
     #echo $country
-    current_rec=`echo ${citizens[$i]} | cut -d " " -f 1-3,5-`
+    #current_rec=`echo ${citizens[$i]} | cut -d " " -f 1-3,5-`
     #echo $current_rec
 
     
     #echo "Number of file to be put: " ${file_number[$country]}
     #echo "FILENAME: " "$input_dir/$country/$country-${file_number[$country]}.txt"
 
-    echo $current_rec >> "$input_dir/$country/$country-${file_number[$country]}.txt"
+    echo ${citizens[$i]} >> "$input_dir/$country/$country-${file_number[$country]}.txt"
 
     ((file_number[$country]=(file_number[$country]+1) % $numFilesPerDir ))    #calculate number of next file to be used
 

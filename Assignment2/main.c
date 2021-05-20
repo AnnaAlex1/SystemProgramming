@@ -265,6 +265,7 @@ int main( int argc, char *argv[]){
 
     } else {
 
+        printf("input: %s %s %s %s\n", argv[1], argv[3], argv[5], argv[7]);
         printf("Wrong Input!\n");
         return -1;
     }
