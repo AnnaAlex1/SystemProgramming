@@ -12,12 +12,13 @@ struct MonitorStruct{
     int pid;    //monitor's process id
     struct VirusesListMain *viruses;    //list of viruses+bf for this monitor
     struct CountryFiles* list_of_countries;
+    int numOfCountries;
 };
 
 
 struct Arguments{
 
-    size_t socketBufferSize;             //-b
+    int socketBufferSize;             //-b
     int numMonitors;    //-m 
     char *input_dir;    //-i
     int cyclicBufferSize;

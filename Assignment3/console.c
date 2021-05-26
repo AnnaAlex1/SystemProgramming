@@ -26,7 +26,7 @@ extern int signal_num;
 
 
 void console( struct MonitorStruct *commun, CountryMainHash countries, size_t socketBufferSize){
-
+/*
     char input[500];
     char *arg_read;
 
@@ -332,7 +332,7 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t so
     }   //end of while
 
 
-    
+ */   
 }
 
 

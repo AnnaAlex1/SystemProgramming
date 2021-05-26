@@ -17,8 +17,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#include <unistd.h>
 #include <ctype.h>
+#include <arpa/inet.h>
 
 
 #include "signal_handl.h"
@@ -72,9 +72,9 @@ int main( int argc, char *argv[]){
 
     printf("Size of Bloom: %d\n", sizeofbloom);
     printf("Number of Monitors: %d\n", arg.numMonitors);
-    printf("socketBufferSize: %ld\n", arg.socketBufferSize);
-    printf("Directory for Input: %s\n\n", arg.input_dir);
-    printf("cyclicBufferSize: %d\n\n", arg.cyclicBufferSize);
+    printf("socketBufferSize: %d\n", arg.socketBufferSize);
+    printf("Directory for Input: %s\n", arg.input_dir);
+    printf("cyclicBufferSize: %d\n", arg.cyclicBufferSize);
     printf("Number of Threads: %d\n\n", arg.numofthreads);
 
     
@@ -95,12 +95,14 @@ int main( int argc, char *argv[]){
         commun[i].list_of_countries = NULL;
         commun[i].sock = -1;
         commun[i].port = port+i;
+        commun[i].numOfCountries = 0;
     }
     
 
+
     //Distribution of folders
-    /*printf("\nDistribution of folders:\n");
-    distribute_subdirs(arg.input_dir, commun, countries);*/
+    printf("\nDistribution of folders:\n");
+    distribute_subdirs(arg.input_dir, commun, countries);
 
 
     for (int i=0; i<arg.numMonitors; i++){
@@ -113,14 +115,26 @@ int main( int argc, char *argv[]){
 
 //////////////////////////////////////////
 
-    // FIND THE ADDRESS OF THE SERVER
+ /*   // FIND THE ADDRESS OF THE SERVER
     struct hostent *rem;
 
-    // find name (or just IP) 
+    // find hostname
+    char hostname[HOST_NAME_MAX + 1];
+    gethostname(hostname, HOST_NAME_MAX + 1);
 
-    if ( (rem = gethostbyname(argv[1])) == NULL ){
+    printf("HOSTNAME: %s\n", hostname);
+
+
+
+    if ( (rem = gethostbyname(hostname)) == NULL ){
         herror("ERROR: in getting host by name"); exit(1);
     }
+
+
+    // find IP
+    char *IPstr = inet_ntoa(*((struct in_addr*) rem->h_addr_list[0]));
+
+    printf("IP: %s\n", IPstr);
 
 
 
@@ -136,7 +150,7 @@ int main( int argc, char *argv[]){
 
         //Creation of Socket
         if ( ( commun[i].sock = socket(AF_INET, SOCK_STREAM, 0) ) < 0 ){
-            perror_exit("ERROR: in creating a socket (client)");
+            perror("ERROR: in creating a socket (client)");
         }
 
 
@@ -148,10 +162,10 @@ int main( int argc, char *argv[]){
     }
 
 
-
+*/
     //ΑΝΑΜΟΝΗ ΓΙΑ BLOOMFILTERS
 
-    for (int i=0; i<arg.numMonitors; i++){      //  for every monitorServer
+    /*for (int i=0; i<arg.numMonitors; i++){      //  for every monitorServer
 
         // START A CONNECTION
         if ( connect(commun[i].sock, serverptr, sizeof(server)) < 0 ){
@@ -168,16 +182,15 @@ int main( int argc, char *argv[]){
 
         close(commun[i].sock);
 
-    }
+    }*/
 
 
     
-    
-    
+
     
     //ΛΗΨΗ ΜΗΝΥΜΑΤΟΣ ΕΤΟΙΜΟΤΗΤΑΣ
 
-    char *ready = NULL;
+ /*   char *ready = NULL;
 
 
     for (int i=0; i<arg.numMonitors; i++){      //  for every monitorServer
@@ -186,13 +199,6 @@ int main( int argc, char *argv[]){
         if ( connect(commun[i].sock, serverptr, sizeof(server)) < 0 ){
             perror("ERROR: in connection");
         }
-
-
-        if (get_bloomfilters(commun, arg.socketBufferSize, arg.numMonitors, commun[i].sock, 0) == -1){
-            perror("ERROR in getting bloomfilters");
-            exit(1);
-        }
-
 
 
         ready = get_message(commun[i].sock, arg.socketBufferSize);
@@ -208,7 +214,7 @@ int main( int argc, char *argv[]){
         close(commun[i].sock);
 
     }
-
+*/
 
 ///////////////////////////////////////
 
@@ -360,7 +366,7 @@ void distribute_subdirs(char * input_dir, struct MonitorStruct *commun, CountryM
     //READ FILES
     DIR *maindr;
     struct dirent *dsub_dir;
-    char *path;
+    //char *path;
 
 
     //open directory input_dir
@@ -371,39 +377,35 @@ void distribute_subdirs(char * input_dir, struct MonitorStruct *commun, CountryM
     //for every subdirectory
     while ( (dsub_dir = readdir(maindr)) != NULL ){
 
+        
+
         //printf("%s\n", dsub_dir->d_name);
 
         if ( (strcmp(dsub_dir->d_name,".") != 0) && (strcmp(dsub_dir->d_name,"..") != 0) ){
-
+            
             //put country in hashtable
             hashtable_addCounMain(countries, dsub_dir->d_name, commun[i].pid);
 
             //printf("    Opening Directory: %s\n", dsub_dir->d_name);
 
-            path = malloc(sizeof(char) * ( strlen(dsub_dir->d_name) + strlen(input_dir) + 2 ) );
+            /*path = malloc(sizeof(char) * ( strlen(dsub_dir->d_name) + strlen(input_dir) + 2 ) );
             strcpy(path, input_dir);
             strcat(path, "/");
-            strcat(path, dsub_dir->d_name);
+            strcat(path, dsub_dir->d_name);*/
 
             //printf("File descriptor: fd[%d]=%d, subdirectory: %s\n", i, fd[i], path);
-            send_message(commun[i].sock, path, strlen(path)+1, arg.socketBufferSize);
-            addinFilesList( &(commun[i].list_of_countries), path);
-
+            //send_message(commun[i].sock, path, strlen(path)+1, arg.socketBufferSize);
+            addinFilesList( &(commun[i].list_of_countries), dsub_dir->d_name);
+            commun[i].numOfCountries++;
 
             i = (i + 1) % arg.numMonitors;
 
-            free(path);
+            //free(path);
         }
 
     }
 
     printf("\nFinished Distribution\n");
-    char *mes = malloc(arg.socketBufferSize);
-    strcpy(mes, "DONE");
-    for (int i = 0; i < arg.numMonitors; i++){
-        send_message(commun[i].sock, mes, strlen("DONE")+1, arg.socketBufferSize);
-    }
-    free(mes);
 
     closedir(maindr);
 }

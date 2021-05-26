@@ -33,14 +33,14 @@ void handle_recreate(int sig){
         
         if (commun[i].pid == child_pid){
 
-            close(commun[i].fd_r);
+            /*close(commun[i].fd_r);
             close(commun[i].fd_w);
 
             commun[i].fd_r = -1;
             commun[i].fd_w = -1;
             free(commun[i].fifoname_r);
             free(commun[i].fifoname_w);
-            deleteVirMain(&(commun[i].viruses));
+            deleteVirMain(&(commun[i].viruses));*/
 
             break;
         }

@@ -17,6 +17,13 @@
 #include <math.h>
 
 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <ctype.h>
+#include <arpa/inet.h>
+
+
 
 extern struct MonitorStruct *commun;
 struct Arguments arg;
@@ -24,7 +31,7 @@ extern int sizeofbloom;
 
 void create_child(int i){
     
-    
+
 
     //FORK CHILD PROCESS
     commun[i].pid = fork();
@@ -34,13 +41,62 @@ void create_child(int i){
         exit(1);
     }
 
-    if ( commun[i].pid == 0 ){
-        //this is a child process
 
-        char *args[] = {"./monitorServer", "-p", commun[i].port, "-t", arg.numofthreads, "-b", 
-        arg.socketBufferSize, "-c", arg.cyclicBufferSize, "-s", sizeofbloom, 
-        commun[i].list_of_countries,  NULL};
+
+
+    struct CountryFiles *temp = commun[i].list_of_countries;
+
+
+
+    if ( commun[i].pid == 0 ){  //this is a child process
         
+
+
+        int args_size = commun[i].numOfCountries + 12;
+        char *args[args_size];
+
+        //adding arguments
+        args[0] = malloc( sizeof(char) * (strlen("./monitorServer")+1) );       // monitorServer
+        strcpy(args[0], "./monitorServer");
+        args[1] = malloc( sizeof(char) * (strlen("-p")+1) );                    // -p
+        strcpy(args[1], "-p");
+        args[2] = malloc( sizeof(char) * 10 );
+        sprintf(args[2], "%d", commun[i].port);                                 // port
+        args[3] = malloc( sizeof(char) * (strlen("-t")+1) );
+        strcpy(args[3], "-t");                                                  // -t
+        args[4] = malloc( sizeof(char) * 10 );
+        sprintf(args[4], "%d", arg.numofthreads);                               // numofthreads
+        args[5] = malloc( sizeof(char) * (strlen("-b")+1) );
+        strcpy(args[5], "-b");                                                  // -b
+        args[6] = malloc( sizeof(char) * 10 );
+        sprintf(args[6], "%d", arg.socketBufferSize);                           // socketBufferSize 
+        args[7] = malloc( sizeof(char) * (strlen("-c")+1) );
+        strcpy(args[7], "-c");                                                  // -c
+        args[8] = malloc( sizeof(char) * 10 );
+        sprintf(args[8], "%d", arg.cyclicBufferSize);                           // cyclicBufferSize
+        args[9] = malloc( sizeof(char) * (strlen("-s")+1) );
+        strcpy(args[9], "-s");                                                  // -s
+        args[10] = malloc( sizeof(char) * 10 );
+        sprintf(args[10], "%d", sizeofbloom);                               // sizeofbloom     
+
+
+        //adding filenames
+        for (int j = 11; j < args_size - 1; j++){
+            
+            args[j] = malloc( sizeof(char) * (strlen(temp->filename)+1) );
+            strcpy(args[j], temp->filename);
+
+            temp = temp->next;
+
+        }
+        
+        //adding NULL
+        args[args_size-1] = NULL; 
+
+
+        /*char *args[] = {"./monitorServer", "-p" , port_str, "-t", thr_str, "-b", 
+        sbuf_str, "-c", cbuf_str, "-s", bl_str, filenames,  NULL};
+        */
         /*
         monitorServer -p port -t numThreads -b socketBufferSize -c cyclicBufferSize -s 
         sizeOfBloom path1 path2 ... pathn
@@ -55,19 +111,7 @@ void create_child(int i){
 
 
 
-
-    char mes_to_send[10];
-
-    //SEND socketBufferSize
-    sprintf(mes_to_send, "%d", arg.socketBufferSize);
-    send_message(commun[i].sock, mes_to_send, strlen(mes_to_send)+1, sizeof(long));
-
-    //SEND BLOOMSIZE
-    sprintf(mes_to_send, "%d", sizeofbloom);
-    //printf("MAIN PROGRAM to send bloomsize: %s\n", mes_to_send);
-    send_message(commun[i].sock, mes_to_send, strlen(mes_to_send)+1, arg.socketBufferSize);
-
-
+    sleep(2);
 
 }
 
@@ -94,7 +138,7 @@ char* get_message(int fd, size_t socketBufferSize){
     //get size of message
     res = read(fd, message, socketBufferSize);
     if ( res < 0 ){
-        perror("ERROR: in reading from Named Pipe (size of message)");
+        perror("ERROR: in reading from Socket (size of message)");
         return NULL;
     }
     int total_message = atoi(message);
@@ -110,7 +154,7 @@ char* get_message(int fd, size_t socketBufferSize){
         //read i-th part of message
         res = read( fd, message, socketBufferSize );
         if ( res < 0 ){
-            perror("ERROR: in reading from Named Pipe");
+            perror("ERROR: in reading from Socket");
             return NULL;
         }
 
@@ -169,7 +213,7 @@ int send_message(int fd, const void* message, int size_of_message, size_t socket
     sprintf(size_str, "%d", size_of_message);
     
     if ( write(fd, size_str, socketBufferSize) == -1 ){
-        perror("ERROR: in writing in Named Pipe (size of message)");
+        perror("ERROR: in writing in Socket (size of message)");
         return -1;
     }
 
@@ -193,7 +237,7 @@ int send_message(int fd, const void* message, int size_of_message, size_t socket
         
 
         if ( write(fd, to_send, socketBufferSize) == -1 ){
-            perror("ERROR: in writing in Named Pipe");
+            perror("ERROR: in writing in Socket");
             return -1;
         }
 
@@ -319,3 +363,41 @@ int get_bloomfilters(struct MonitorStruct *commun, size_t socketBufferSize, int 
 }
 
 
+
+
+char* get_mes_client(int sock, struct sockaddr_in server, struct sockaddr *serverptr ){
+
+    char *mes;
+
+    // START A CONNECTION
+    if ( connect(sock, serverptr, sizeof(server)) < 0 ){
+        perror("ERROR: in connection");
+    }
+
+    mes = get_message(sock, arg.socketBufferSize);
+
+    close(sock);
+
+    return mes;
+
+}
+
+
+void send_mes_server(int sock, struct sockaddr *clientptr, socklen_t clientlen, const void* message, int size_of_message, size_t socketBufferSize){
+
+    int newsock;
+
+    // Accepting a connection
+    if ( (newsock = accept(sock, clientptr, &clientlen)) < 0 ){
+        perror("ERROR: during accepting of connection");
+    }
+
+    printf("Accepted Connection\n");
+    close(sock); 
+    
+    send_message(newsock, message, size_of_message, socketBufferSize);
+
+    
+    close(newsock);
+
+}
