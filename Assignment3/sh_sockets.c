@@ -77,7 +77,7 @@ void create_child(int i){
         args[9] = malloc( sizeof(char) * (strlen("-s")+1) );
         strcpy(args[9], "-s");                                                  // -s
         args[10] = malloc( sizeof(char) * 10 );
-        sprintf(args[10], "%d", sizeofbloom);                               // sizeofbloom     
+        sprintf(args[10], "%d", sizeofbloom);                                   // sizeofbloom     
 
 
         //adding filenames
@@ -93,10 +93,6 @@ void create_child(int i){
         //adding NULL
         args[args_size-1] = NULL; 
 
-
-        /*char *args[] = {"./monitorServer", "-p" , port_str, "-t", thr_str, "-b", 
-        sbuf_str, "-c", cbuf_str, "-s", bl_str, filenames,  NULL};
-        */
         /*
         monitorServer -p port -t numThreads -b socketBufferSize -c cyclicBufferSize -s 
         sizeOfBloom path1 path2 ... pathn
@@ -111,7 +107,6 @@ void create_child(int i){
 
 
 
-    sleep(2);
 
 }
 
@@ -320,6 +315,7 @@ int get_bloomfilters(struct MonitorStruct *commun, size_t socketBufferSize, int 
 
         //get name of virus
         virusname = get_message(commun[pos_in_commun].sock, socketBufferSize);
+        printf("Virusname: %s\n", virusname);
 
         if ( virusname == NULL ){
             perror("ERROR in getting name of virus");
@@ -333,7 +329,7 @@ int get_bloomfilters(struct MonitorStruct *commun, size_t socketBufferSize, int 
         }
 
         //get bloomfilter of virus
-        bloomfilter = get_message(commun[pos_in_commun].sock,socketBufferSize);
+        bloomfilter = get_message(commun[pos_in_commun].sock, socketBufferSize);
 
         memcpy(bloomf, bloomfilter, sizeofbloom + sizeof(int));
 
@@ -372,6 +368,7 @@ char* get_mes_client(int sock, struct sockaddr_in server, struct sockaddr *serve
     // START A CONNECTION
     if ( connect(sock, serverptr, sizeof(server)) < 0 ){
         perror("ERROR: in connection");
+        exit(1);
     }
 
     mes = get_message(sock, arg.socketBufferSize);
@@ -390,6 +387,7 @@ void send_mes_server(int sock, struct sockaddr *clientptr, socklen_t clientlen, 
     // Accepting a connection
     if ( (newsock = accept(sock, clientptr, &clientlen)) < 0 ){
         perror("ERROR: during accepting of connection");
+        exit(1);
     }
 
     printf("Accepted Connection\n");

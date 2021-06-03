@@ -36,7 +36,7 @@ extern int signal_num;
 
 
 int store_records(Hashtable citizens, struct List** virus_list, CountryHash countries);
-void monitor_body(int fd_w, int fd_r, Hashtable citizens, struct List **viruslist, CountryHash countries);
+void monitor_body(int sock, Hashtable citizens, struct List **viruslist, CountryHash countries);
 int read_new_files(Hashtable citizens, struct List** virus_list, CountryHash countries);
 
 
@@ -68,7 +68,7 @@ int main(int argc, char* argv[]){
 
     
 
-    // STORE RECORDS FROM COUNTRYFOLDERS
+    // STORE RECORDS FROM COUNTRY FOLDERS
     //List of viruses
     struct List* virus_list = NULL;
 
@@ -82,7 +82,6 @@ int main(int argc, char* argv[]){
 
     for (int i = 11; i < argc-1; i++){
         hashtable_addCoun(countries, argv[i]);
-        printf("Argv[i]: %s\n", argv[i]);
     }
     
     
@@ -101,7 +100,7 @@ int main(int argc, char* argv[]){
 
 
     //SOCKET
-   /* int sock, newsock;
+    int sock, newsock;
 
     struct sockaddr_in server, client;
     socklen_t clientlen;
@@ -111,10 +110,15 @@ int main(int argc, char* argv[]){
 
     
 
-    //Creation of Socket
+    // Creation of Socket
     if ( (sock = socket(AF_INET, SOCK_STREAM, 0) ) < 0 ) {
         perror("ERROR: in creating a Socket (server)");
+        exit(1);
     }
+
+    // to reuse
+    int reuse_Addr = 1;
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse_Addr, sizeof(reuse_Addr));
 
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -125,15 +129,18 @@ int main(int argc, char* argv[]){
     //  Binding socket to the address
     if ( bind(sock, serverptr, sizeof(server)) < 0 ){
         perror("ERROR: during binding");
+        exit(1);
     }
 
+    printf("Before listening\n");
     // Listening for connections
-    if ( listen(sock, 100) < 0 ){
+    if ( listen(sock, 2) < 0 ){
         perror("ERROR: during listening");
+        exit(1);
     }
     printf("Listening for connections to port %d\n", port);
 
-*/
+
 
 
 
@@ -143,44 +150,45 @@ int main(int argc, char* argv[]){
     //ΑΠΟΣΤΟΛΗ ΤΩΝ Bloomfilter (για κάθε ίωση)
 
     // Accepting a connection
-    /*if ( (newsock = accept(sock, clientptr, &clientlen)) < 0 ){
+    clientlen = sizeof(client);
+    if ( (newsock = accept(sock, clientptr, &clientlen)) < 0 ){
         perror("ERROR: during accepting of connection");
+        exit(1);
     }
 
     printf("Accepted Connection\n");
-    close(sock); 
     
    
-    if (send_bloomfilters(newsock, virus_list, socketBufferSize) == -1){
+    /*if (send_bloomfilters(newsock, virus_list, socketBufferSize) == -1){
         perror("ERROR in sending bloomfilters");
         exit(1);
-    }
+    }*/
         
     
-    close(newsock);*/
+    //close(newsock);
 
     //////////////////////////////////////////////////////////
-
-
 
     //ΑΠΟΣΤΟΛΗ ΜΗΝΥΜΑΤΟΣ ΕΤΟΙΜΟΤΗΤΑΣ ΓΙΑ ΑΙΤΗΜΑΤΑ
 
     // Accepting a connection
- /*   if ( (newsock = accept(sock, clientptr, &clientlen)) < 0 ){
+    /*if ( (newsock = accept(sock, clientptr, &clientlen)) < 0 ){
         perror("ERROR: during accepting of connection");
+        exit(1);
     }
 
-    printf("Accepted Connection\n");
-    close(sock); 
+    printf("Accepted Connection\n");*/
     
     send_message(newsock, "READY", strlen("READY")+1, socketBufferSize);
 
-    close(newsock);
-
-*/
+    //close(newsock);
 
 
 
+
+
+
+    //close(sock); 
 
 
 
@@ -213,10 +221,10 @@ int main(int argc, char* argv[]){
     
     //////////////////////////////////
     //MAIN FUNCTION OF MONITORS
-    //monitor_body(fd_w, fd_r, citizens, &virus_list, countries);
+    monitor_body(newsock, citizens, &virus_list, countries);
 
 
-
+    close(newsock);
 
 
     //////////////////////////////////////////////////
@@ -306,12 +314,12 @@ int store_records(Hashtable citizens, struct List** virus_list, CountryHash coun
 
                             //printf("file to open: %s\n", filepath);
 
-                            if ( read_file(filepath, citizens, virus_list, country_str->name) == 0 ){
-                                printf("Successful reading of file %s!\n", dfiles->d_name);
-                            } else {
+                            if ( read_file(filepath, citizens, virus_list, country_str->name) == -1 ){
                                 perror("ERROR: Unsuccessful Reading!");
                                 return -1;
-                            }
+                            } /*else {
+                                //printf("Successful reading of file %s!\n", dfiles->d_name);
+                            }*/
 
 
 
@@ -350,7 +358,7 @@ int store_records(Hashtable citizens, struct List** virus_list, CountryHash coun
 
 
 
-void monitor_body(int fd_w, int fd_r, Hashtable citizens, struct List **viruslist, CountryHash countries){
+void monitor_body(int sock, Hashtable citizens, struct List **viruslist, CountryHash countries){
 
 
     int total_requests = 0;
@@ -367,7 +375,7 @@ void monitor_body(int fd_w, int fd_r, Hashtable citizens, struct List **viruslis
         if ( signal_num == 5){      // SIGNAL FOR READING
 
             //GET CHOSEN COMMAND
-            command = get_message(fd_r, socketBufferSize);
+            command = get_message(sock, socketBufferSize);
 
             if ( strcmp(command, "travelRequest") == 0 ){
 
@@ -375,16 +383,16 @@ void monitor_body(int fd_w, int fd_r, Hashtable citizens, struct List **viruslis
 
                 //GET NECESSARY INFO
                 //get name of virus
-                char *virus = get_message(fd_r, socketBufferSize);
+                char *virus = get_message(sock, socketBufferSize);
                 //get citizenID
-                char *citizenID = get_message(fd_r, socketBufferSize);
+                char *citizenID = get_message(sock, socketBufferSize);
 
 
                 //get struct for virus
                 struct List* virusNode = getelemfromlist(*viruslist, virus);
                 if ( virusNode == NULL ){
                     printf("No such Virus!\n");
-                    send_message(fd_w, "Error", strlen("Error")+1, socketBufferSize);
+                    send_message(sock, "Error", strlen("Error")+1, socketBufferSize);
                     continue;
                 }
 
@@ -395,10 +403,10 @@ void monitor_body(int fd_w, int fd_r, Hashtable citizens, struct List **viruslis
                     printf("VACCINATED ON %s\n", date);
                     
                     //send answer "YES"
-                    send_message(fd_w, "YES", strlen("YES")+1, socketBufferSize);
+                    send_message(sock, "YES", strlen("YES")+1, socketBufferSize);
 
                     //send date
-                    send_message(fd_w, date, strlen(date)+1, socketBufferSize);
+                    send_message(sock, date, strlen(date)+1, socketBufferSize);
 
                     accepted_req++;
 
@@ -406,7 +414,7 @@ void monitor_body(int fd_w, int fd_r, Hashtable citizens, struct List **viruslis
                     printf("NOT VACCINATED\n");
 
                     //send answer "NO"
-                    send_message(fd_w, "NO", strlen("NO")+1, socketBufferSize);
+                    send_message(sock, "NO", strlen("NO")+1, socketBufferSize);
 
                     rejected_req++;
                 }
@@ -415,28 +423,28 @@ void monitor_body(int fd_w, int fd_r, Hashtable citizens, struct List **viruslis
 
             } else if ( strcmp(command, "searchVaccinationStatus") == 0 ){
 
-                char *citizenID = get_message(fd_r, socketBufferSize);
+                char *citizenID = get_message(sock, socketBufferSize);
 
                 struct Citizen *cit = hashtable_get(citizens, citizenID);
 
                 if ( cit == NULL ){     //citizen not in this monitor
                     
-                    send_message(fd_w, "NOT FOUND", strlen("NOT FOUND")+1, socketBufferSize);
+                    send_message(sock, "NOT FOUND", strlen("NOT FOUND")+1, socketBufferSize);
 
                 } else {        //citizen found
 
-                    send_message(fd_w, "FOUND", strlen("FOUND")+1, socketBufferSize);
+                    send_message(sock, "FOUND", strlen("FOUND")+1, socketBufferSize);
 
                     //send info
                     char info[300];
                     sprintf(info, "%s %s %s %s", cit->citizenID, cit->firstname, cit->lastname, cit->country);
 
                     //send citizen details
-                    send_message(fd_w, info, strlen(info)+1, socketBufferSize);
+                    send_message(sock, info, strlen(info)+1, socketBufferSize);
 
                     //send age
                     sprintf(info, "%d", cit->age);
-                    send_message(fd_w, info, strlen(info)+1, socketBufferSize );
+                    send_message(sock, info, strlen(info)+1, socketBufferSize );
 
 
                     struct List *temp = *viruslist;
@@ -457,14 +465,14 @@ void monitor_body(int fd_w, int fd_r, Hashtable citizens, struct List **viruslis
 
                         }
 
-                        send_message(fd_w, info, strlen(info)+1, socketBufferSize);
+                        send_message(sock, info, strlen(info)+1, socketBufferSize);
                         
 
                         temp = temp->next;
                     }
 
                     //send "DONE" message
-                    send_message(fd_w, "DONE", strlen("DONE")+1, socketBufferSize);
+                    send_message(sock, "DONE", strlen("DONE")+1, socketBufferSize);
 
                 }
 
@@ -489,7 +497,7 @@ void monitor_body(int fd_w, int fd_r, Hashtable citizens, struct List **viruslis
             printf("Finished with reading new Files!\n");
 
             //Αποστολή των Bloomfilter (για κάθε ίωση)
-            if (send_bloomfilters(fd_w, *viruslist, socketBufferSize) == -1){
+            if (send_bloomfilters(sock, *viruslist, socketBufferSize) == -1){
                 perror("ERROR in sending bloomfilters");
                 exit(1);
             }

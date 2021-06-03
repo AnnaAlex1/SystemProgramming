@@ -1,15 +1,17 @@
 CC=gcc
-CFLAGS=-Wall -g
+CFLAGS=-Wall -g -lpthread
 
 
-travelMonitorClient: main.o requests.o signal_handl.o sh_sockets.o console.o citizens.o records.o virus.o bloomfilter.o skiplist.o countries.o
-	$(CC) $(CFLAGS) -o travelMonitorClient main.o requests.o signal_handl.o sh_sockets.o console.o citizens.o records.o virus.o bloomfilter.o skiplist.o countries.o -lm
+travelMonitorClient: main.o threads_imp.o requests.o signal_handl.o sh_sockets.o console.o citizens.o records.o virus.o bloomfilter.o skiplist.o countries.o
+	$(CC) $(CFLAGS) -o travelMonitorClient main.o threads_imp.o requests.o signal_handl.o sh_sockets.o console.o citizens.o records.o virus.o bloomfilter.o skiplist.o countries.o -lm
 
-monitorServer: monitor.o requests.o signal_handl.o sh_sockets.o console.o citizens.o records.o virus.o bloomfilter.o skiplist.o countries.o
-	$(CC) $(CFLAGS) -o monitorServer monitor.o requests.o signal_handl.o sh_sockets.o console.o citizens.o records.o virus.o bloomfilter.o skiplist.o countries.o -lm
+monitorServer: monitor.o threads_imp.o requests.o signal_handl.o sh_sockets.o console.o citizens.o records.o virus.o bloomfilter.o skiplist.o countries.o
+	$(CC) $(CFLAGS) -o monitorServer threads_imp.o monitor.o requests.o signal_handl.o sh_sockets.o console.o citizens.o records.o virus.o bloomfilter.o skiplist.o countries.o -lm
 
 
 
+threads_imp.o: threads_imp.c
+	$(CC) $(CFLAGS) -c threads_imp.c
 
 monitor.o: monitor.c
 	$(CC) $(CFLAGS) -c monitor.c

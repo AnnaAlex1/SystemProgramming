@@ -84,7 +84,7 @@ int main( int argc, char *argv[]){
 
 
     //SOCKET
-    int port = 8080;
+    int port = 49152;
 
 
 
@@ -115,7 +115,7 @@ int main( int argc, char *argv[]){
 
 //////////////////////////////////////////
 
- /*   // FIND THE ADDRESS OF THE SERVER
+    // FIND THE ADDRESS OF THE SERVER
     struct hostent *rem;
 
     // find hostname
@@ -128,6 +128,7 @@ int main( int argc, char *argv[]){
 
     if ( (rem = gethostbyname(hostname)) == NULL ){
         herror("ERROR: in getting host by name"); exit(1);
+        exit(1);
     }
 
 
@@ -139,7 +140,6 @@ int main( int argc, char *argv[]){
 
 
 
-    char buf[256];
 
     struct sockaddr_in server;
     struct sockaddr *serverptr = (struct sockaddr*)&server;
@@ -151,8 +151,9 @@ int main( int argc, char *argv[]){
         //Creation of Socket
         if ( ( commun[i].sock = socket(AF_INET, SOCK_STREAM, 0) ) < 0 ){
             perror("ERROR: in creating a socket (client)");
+            exit(1);
         }
-
+        printf("Creation of Socket: %d\n", commun[i].sock);
 
         server.sin_family = AF_INET;
         memcpy(&server.sin_addr, rem->h_addr, rem->h_length);
@@ -162,48 +163,59 @@ int main( int argc, char *argv[]){
     }
 
 
-*/
+
     //ΑΝΑΜΟΝΗ ΓΙΑ BLOOMFILTERS
 
-    /*for (int i=0; i<arg.numMonitors; i++){      //  for every monitorServer
+    for (int i=0; i<arg.numMonitors; i++){      //  for every monitorServer
 
         // START A CONNECTION
-        if ( connect(commun[i].sock, serverptr, sizeof(server)) < 0 ){
+        do {
+        } while ( connect(commun[i].sock, serverptr, sizeof(server)) < 0 );
+
+        printf(" -------------------  A Connection was made\n");
+        /*if ( connect(commun[i].sock, serverptr, sizeof(server)) < 0 ){
             perror("ERROR: in connection");
-        }
+            exit(1);
+        }*/
 
 
-        if (get_bloomfilters(commun, arg.socketBufferSize, arg.numMonitors, commun[i].sock, 0) == -1){
+        /*if (get_bloomfilters(commun, arg.socketBufferSize, arg.numMonitors, commun[i].sock, 0) == -1){
             perror("ERROR in getting bloomfilters");
             exit(1);
-        }
+        }*/
         
 
 
-        close(commun[i].sock);
+        //close(commun[i].sock);
 
-    }*/
+    }
 
 
-    
-
-    
+        
     //ΛΗΨΗ ΜΗΝΥΜΑΤΟΣ ΕΤΟΙΜΟΤΗΤΑΣ
 
- /*   char *ready = NULL;
+    char *ready = NULL;
 
 
     for (int i=0; i<arg.numMonitors; i++){      //  for every monitorServer
 
         // START A CONNECTION
-        if ( connect(commun[i].sock, serverptr, sizeof(server)) < 0 ){
+        printf("Socket: %d\n", commun[i].sock);
+        /*do {
+
+
+        } while (connect(commun[i].sock, serverptr, sizeof(server)) < 0);*/
+        
+        /*if ( connect(commun[i].sock, serverptr, sizeof(server)) < 0 ){
             perror("ERROR: in connection");
-        }
+            exit(1);
+        }*/
 
 
         ready = get_message(commun[i].sock, arg.socketBufferSize);
         if ( strcmp(ready, "READY") != 0 ){
             printf("Something Went Wrong!\n");
+            exit(1);
         } else {
             printf("Monitor %d is ready!\n", commun[i].pid);
         }
@@ -211,10 +223,10 @@ int main( int argc, char *argv[]){
         free(ready);
         
 
-        close(commun[i].sock);
+        //close(commun[i].sock);
 
     }
-*/
+
 
 ///////////////////////////////////////
 
@@ -339,7 +351,7 @@ int main( int argc, char *argv[]){
     
     ////////////////////////////////////
     //CONSOLE
-    //console(commun, countries, arg.socketBufferSize);
+    console(commun, countries, arg.socketBufferSize);
 
 
     hashtable_destroyCounMain(countries);
@@ -347,6 +359,7 @@ int main( int argc, char *argv[]){
     free(arg.input_dir);
 
     return 0;
+
 }
 
 

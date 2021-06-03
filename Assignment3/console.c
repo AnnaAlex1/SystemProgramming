@@ -26,7 +26,7 @@ extern int signal_num;
 
 
 void console( struct MonitorStruct *commun, CountryMainHash countries, size_t socketBufferSize){
-/*
+
     char input[500];
     char *arg_read;
 
@@ -72,12 +72,12 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t so
                     reassign_countries(commun, countries, prev_pid, i, socketBufferSize);
 
                     //get bloomfilters
-                    if (get_bloomfilters(commun, socketBufferSize, arg.numMonitors, commun[i].fd_r, 0) == -1){
+                    if (get_bloomfilters(commun, socketBufferSize, arg.numMonitors, commun[i].sock, 0) == -1){
                         perror("ERROR in getting bloomfilters");
                         exit(1);
                     }
 
-                    char *ready = get_message(commun[i].fd_r, socketBufferSize);
+                    char *ready = get_message(commun[i].sock, socketBufferSize);
                     if ( strcmp(ready, "READY") != 0 ){
                         printf("Something Went Wrong!\n");
                     } else {
@@ -120,11 +120,9 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t so
 
             printf("\nFinished with Pipes\n");
             for (int i = 0; i < arg.numMonitors; i++) {
-                close(commun[i].fd_w);
-                close(commun[i].fd_r);
-                unlink(commun[i].fifoname_w);
-                unlink(commun[i].fifoname_r);
-
+                close(commun[i].sock);
+                //unlink(commun[i].fifoname_w);
+                deleteFileslist(&(commun[i].list_of_countries));
                 deleteVirMain(&(commun[i].viruses));
             }
             free(commun);
@@ -332,7 +330,7 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t so
     }   //end of while
 
 
- */   
+  
 }
 
 
