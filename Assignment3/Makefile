@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -g -lpthread
+CFLAGS=-Wall -g -pthread
 
 
 travelMonitorClient: main.o threads_imp.o requests.o signal_handl.o sh_sockets.o console.o citizens.o records.o virus.o bloomfilter.o skiplist.o countries.o

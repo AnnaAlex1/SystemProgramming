@@ -246,7 +246,7 @@ void printVirMain(struct VirusesListMain* virus_list){
 int deleteVirMain(struct VirusesListMain** virus_list){
     
     printf("Deleting Viruses List...\n");
-    if (*virus_list == NULL) return -1;
+    if ( virus_list == NULL || *virus_list == NULL) return -1;
 
     struct VirusesListMain* to_free;
 

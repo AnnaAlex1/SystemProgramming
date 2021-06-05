@@ -13,7 +13,7 @@
 
 
 
-int read_file(char* filename, Hashtable ht, struct List** virus_list, char *country){
+int read_file(char* filename, Hashtable ht, struct List** virus_list){
 
     FILE* cit_file;
 

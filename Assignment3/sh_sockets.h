@@ -5,11 +5,14 @@
 #include "virus.h"
 #include "countries.h"
 
+#include <netinet/in.h>
 
 struct MonitorStruct{
     int sock;      //monitor's connection
     int port;
     int pid;    //monitor's process id
+    struct sockaddr_in server;
+    struct sockaddr *serverptr;
     struct VirusesListMain *viruses;    //list of viruses+bf for this monitor
     struct CountryFiles* list_of_countries;
     int numOfCountries;
@@ -27,11 +30,11 @@ struct Arguments{
 };
 
 void create_child(int i);
-int send_message(int fd, const void* message, int size_of_message, size_t buffersize);
+int send_message(int fd, const void* message, int size_of_message, int socketbuffersize);
 
-char* get_message(int fd_r, size_t buffersize);
+char* get_message(int fd_r, int socketbuffersize);
 
-int send_bloomfilters(int fd, struct List* virus_list, size_t buffersize);
-int get_bloomfilters(struct MonitorStruct *commun, size_t buffersize, int numMonitors, int i, int replace);
+int send_bloomfilters(int fd, struct List* virus_list, int socketbuffersize);
+int get_bloomfilters(struct MonitorStruct *commun, int socketbuffersize, int numMonitors, int i, int replace);
 
 #endif

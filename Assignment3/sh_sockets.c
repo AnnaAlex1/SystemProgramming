@@ -107,7 +107,6 @@ void create_child(int i){
 
 
 
-
 }
 
 
@@ -118,7 +117,7 @@ void create_child(int i){
 
 
 
-char* get_message(int fd, size_t socketBufferSize){
+char* get_message(int fd, int socketBufferSize){
 
 
     char *message;
@@ -186,25 +185,95 @@ char* get_message(int fd, size_t socketBufferSize){
     return cur_mes;
 }
 
+/*
+
+char* get_message(int fd, int socketBufferSize){
+
+
+    char *message;
+    message = malloc( socketBufferSize);
+    
+    int res;
+    int remainder_len;
+
+
+    //get size of message
+    res = read(fd, message, socketBufferSize);
+    if ( res < 0 ){
+        perror("ERROR: in reading from Socket (size of message)");
+        return NULL;
+    }
+    int total_message = atoi(message);
+    //printf("Size of message to receive: %d\n", total_message);
+
+    char *cur_mes = malloc( total_message );
+
+    //get number of rounds to perform
+    int rounds = ceil( (double)total_message / (double)socketBufferSize );
+
+
+    for (int i = 0; i < rounds; i++){
+    
+        //read i-th part of message
+        res = read( fd, message, socketBufferSize );
+        if ( res < 0 ){
+            perror("ERROR: in reading from Socket");
+            return NULL;
+        }
+
+        if ( i == rounds-1 ){       //for the last round
+            
+            
+            remainder_len = total_message % socketBufferSize;
+            if (remainder_len == 0){
+                remainder_len = socketBufferSize;
+            }
+            
+            //allocate more space for new info
+            //cur_mes = realloc(cur_mes, i*socketBufferSize + remainder_len );
+            
+            memcpy(cur_mes + i*socketBufferSize, message, remainder_len);
+
+        } else{
+            
+            //if ( i != 0 ){ //not first round
+             //   cur_mes = realloc(cur_mes, (i+1)*socketBufferSize);
+            //}
+
+            memcpy(cur_mes + i*socketBufferSize, message, socketBufferSize);
+
+        }
+
+        
+
+    }
+
+
+    free(message);
+
+    return cur_mes;
+}
+
+
+*/
 
 
 
 
-
-
-
-int send_message(int fd, const void* message, int size_of_message, size_t socketBufferSize){
+int send_message(int fd, const void* message, int size_of_message, int socketBufferSize){
 
 
     int remainder_len;        //length of string for last round
     char to_send[socketBufferSize];
-    
+    memset(to_send, 0, socketBufferSize);
+
 
     //get number of rounds to perform
     int rounds = ceil( (double)size_of_message / (double)socketBufferSize );
 
     //send message's size
     char size_str[10];
+    memset(size_str, 0, sizeof(size_str));
     sprintf(size_str, "%d", size_of_message);
     
     if ( write(fd, size_str, socketBufferSize) == -1 ){
@@ -254,7 +323,7 @@ int send_message(int fd, const void* message, int size_of_message, size_t socket
 
 
 
-int send_bloomfilters(int fd, struct List* virus_list, size_t socketBufferSize){
+int send_bloomfilters(int fd, struct List* virus_list, int socketBufferSize){
 
     if (virus_list == NULL){
         printf("No BloomFilters to be send\n");
@@ -266,6 +335,7 @@ int send_bloomfilters(int fd, struct List* virus_list, size_t socketBufferSize){
     while( virus_temp != NULL){
 
         //send name of virus
+        printf("To SEND: %s         from %d with socketbuffersize of %d\n", virus_temp->name, getpid(), socketBufferSize);
         send_message(fd, virus_temp->name, strlen(virus_temp->name)+1, socketBufferSize);       
 
         //send bloomfilter for virus
@@ -287,7 +357,7 @@ int send_bloomfilters(int fd, struct List* virus_list, size_t socketBufferSize){
 
 
 
-int get_bloomfilters(struct MonitorStruct *commun, size_t socketBufferSize, int numMonitors, int i, int replace){
+int get_bloomfilters(struct MonitorStruct *commun, int socketBufferSize, int numMonitors, int i, int replace){
 
     char *virusname = NULL;
     char *bloomfilter;  
@@ -310,7 +380,9 @@ int get_bloomfilters(struct MonitorStruct *commun, size_t socketBufferSize, int 
         pos_in_commun = i;
     }
 
-
+    printf("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW  pid: %d   sock: %d    port: %d", commun[pos_in_commun].pid, commun[pos_in_commun].sock, commun[pos_in_commun].port);
+    printf("   SocketBufferSize: %d  %d\n", socketBufferSize, arg.socketBufferSize);
+    
     while( 1 ){
 
         //get name of virus
@@ -380,7 +452,7 @@ char* get_mes_client(int sock, struct sockaddr_in server, struct sockaddr *serve
 }
 
 
-void send_mes_server(int sock, struct sockaddr *clientptr, socklen_t clientlen, const void* message, int size_of_message, size_t socketBufferSize){
+void send_mes_server(int sock, struct sockaddr *clientptr, socklen_t clientlen, const void* message, int size_of_message, int socketBufferSize){
 
     int newsock;
 

@@ -38,7 +38,7 @@ struct CitRecord{
 
 
 
-int read_file(char* filename, Hashtable ht, struct List** virus_list, char *country);
+int read_file(char* filename, Hashtable ht, struct List** virus_list);
 
 void insert_record(Hashtable ht,  struct List** virus_list, struct Citizen citizen, char* virus, bool done, char* date, bool from_console);
 

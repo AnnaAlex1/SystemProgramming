@@ -565,7 +565,7 @@ void addinFilesList(struct CountryFiles** fileslist, char* filename){
 int deleteFileslist(struct CountryFiles** fileslist){
 
     printf("Deleting List of Filenames...\n");
-    if (*fileslist == NULL) return -1;
+    if ( fileslist == NULL || *fileslist == NULL) return -1;
 
     struct CountryFiles* to_free;
 

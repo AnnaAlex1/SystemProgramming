@@ -25,7 +25,7 @@ extern int signal_num;
 
 
 
-void console( struct MonitorStruct *commun, CountryMainHash countries, size_t socketBufferSize){
+void console( struct MonitorStruct *commun, CountryMainHash countries, int socketBufferSize){
 
     char input[500];
     char *arg_read;
@@ -336,7 +336,7 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, size_t so
 
 
 
-void travel_Req(struct MonitorStruct *commun, CountryMainHash countries, size_t socketBufferSize,
+void travel_Req(struct MonitorStruct *commun, CountryMainHash countries, int socketBufferSize,
                 char *virusName, char *countryFrom, char *citizenID, char *trav_date, char* countryTo,
                  int *rejected_req, int *accepted_req, struct RequestsList **req_list){
 
@@ -667,7 +667,7 @@ int in_prev_six(char *date1, char *date2){
 
 
 
-void reassign_countries(struct MonitorStruct *commun, CountryMainHash ht, int prev_pid, int com_pos, size_t socketBufferSize){
+void reassign_countries(struct MonitorStruct *commun, CountryMainHash ht, int prev_pid, int com_pos, int socketBufferSize){
 
 
     if (ht == NULL){

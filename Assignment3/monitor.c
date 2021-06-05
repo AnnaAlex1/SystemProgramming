@@ -25,17 +25,17 @@
 #include "sh_sockets.h"
 #include "console.h"
 #include "signal_handl.h"
-#include "citizens.h"
-#include "countries.h"
+#include "threads_imp.h"
 
 
-size_t socketBufferSize;
+
+int socketBufferSize;
 extern int sizeofbloom;
 
 extern int signal_num;
 
 
-int store_records(Hashtable citizens, struct List** virus_list, CountryHash countries);
+//int store_records(Hashtable citizens, struct List** virus_list, CountryHash countries);
 void monitor_body(int sock, Hashtable citizens, struct List **viruslist, CountryHash countries);
 int read_new_files(Hashtable citizens, struct List** virus_list, CountryHash countries);
 
@@ -47,7 +47,7 @@ int read_new_files(Hashtable citizens, struct List** virus_list, CountryHash cou
 int main(int argc, char* argv[]){
 
     printf("Hello from Monitor pid:%d!\n", getpid());
-    printf("Number of Arguments: %d\n", argc);
+    //printf("Number of Arguments: %d\n", argc);
 
 
     //GET ARGUMENTS
@@ -57,14 +57,14 @@ int main(int argc, char* argv[]){
     int cyclicBufferSize = atoi(argv[8]);
     sizeofbloom = atoi(argv[10]);
 
-
+    
     printf("\nMONITOR ARGUMENTS:\n");
     printf("Port: %d\n", port);
     printf("Number of Threads: %d\n", numThreads);
-    printf("Socket Buffersize: %ld\n", socketBufferSize);
+    printf("Socket Buffersize: %d\n", socketBufferSize);
     printf("CyclicBuffersize: %d\n", cyclicBufferSize);
     printf("Sizeofbloom: %d\n", sizeofbloom);
-
+    
 
     
 
@@ -80,16 +80,23 @@ int main(int argc, char* argv[]){
     CountryHash countries;
     countries = hashtable_createCoun();
 
-    for (int i = 11; i < argc-1; i++){
+    for (int i = 11; i < argc; i++){
         hashtable_addCoun(countries, argv[i]);
     }
     
     
-    //ΑΡΧΙΚΟΠΟΙΗΣΗ: Αναμονή για χώρες
-    if ( store_records(citizens, &virus_list, countries) == -1 ){
+
+
+    //ΑΡΧΙΚΟΠΟΙΗΣΗ: Αποθήκευση εγγραφών από νήματα
+    if ( thread_store_records(numThreads, cyclicBufferSize, argc-11, citizens, &virus_list, countries) == -1 ){
         printf("ERROR in storing records");
         exit(1);
     }
+
+    /*if ( store_records(citizens, &virus_list, countries) == -1 ){
+        printf("ERROR in storing records");
+        exit(1);
+    }*/
 
 
 
@@ -134,11 +141,11 @@ int main(int argc, char* argv[]){
 
     printf("Before listening\n");
     // Listening for connections
-    if ( listen(sock, 2) < 0 ){
+    if ( listen(sock, 1) < 0 ){
         perror("ERROR: during listening");
         exit(1);
     }
-    printf("Listening for connections to port %d\n", port);
+    printf("Listening for connections to port %d from monitor %d\n", port, getpid());
 
 
 
@@ -150,19 +157,26 @@ int main(int argc, char* argv[]){
     //ΑΠΟΣΤΟΛΗ ΤΩΝ Bloomfilter (για κάθε ίωση)
 
     // Accepting a connection
+    printf("Ready To Accept, %d\n", getpid());
     clientlen = sizeof(client);
     if ( (newsock = accept(sock, clientptr, &clientlen)) < 0 ){
         perror("ERROR: during accepting of connection");
         exit(1);
     }
 
-    printf("Accepted Connection\n");
-    
-   
-    /*if (send_bloomfilters(newsock, virus_list, socketBufferSize) == -1){
+    printf("+++++++++++++++++++++++Accepted Connection from %d\n", getpid());
+
+                    struct hostent *rem;
+                    /* Find client's address */
+                    if ((rem = gethostbyaddr((char *) &client.sin_addr.s_addr, sizeof(client.sin_addr.s_addr), client.sin_family)) == NULL) {
+                        herror("gethostbyaddr"); exit(1);}
+                    printf("Accepted connection from %s\n", rem->h_name);
+
+    printf("About to send bf from %d\n", getpid());
+    if (send_bloomfilters(newsock, virus_list, socketBufferSize) == -1){
         perror("ERROR in sending bloomfilters");
         exit(1);
-    }*/
+    }
         
     
     //close(newsock);
@@ -186,7 +200,7 @@ int main(int argc, char* argv[]){
 
 
 
-
+    printf("Monitor %d reached this spot!\n", getpid());
 
     //close(sock); 
 
@@ -225,6 +239,7 @@ int main(int argc, char* argv[]){
 
 
     close(newsock);
+    close(sock);
 
 
     //////////////////////////////////////////////////
@@ -255,7 +270,7 @@ int main(int argc, char* argv[]){
 
 
 
-
+/*
 int store_records(Hashtable citizens, struct List** virus_list, CountryHash countries){
 
     char* foldername;
@@ -314,12 +329,10 @@ int store_records(Hashtable citizens, struct List** virus_list, CountryHash coun
 
                             //printf("file to open: %s\n", filepath);
 
-                            if ( read_file(filepath, citizens, virus_list, country_str->name) == -1 ){
+                            if ( read_file(filepath, citizens, virus_list) == -1 ){
                                 perror("ERROR: Unsuccessful Reading!");
                                 return -1;
-                            } /*else {
-                                //printf("Successful reading of file %s!\n", dfiles->d_name);
-                            }*/
+                            }
 
 
 
@@ -354,7 +367,7 @@ int store_records(Hashtable citizens, struct List** virus_list, CountryHash coun
 }
 
 
-
+*/
 
 
 
@@ -618,7 +631,7 @@ int read_new_files(Hashtable citizens, struct List** virus_list, CountryHash cou
 
                                 //printf("file to open: %s\n", filepath);
 
-                                if ( read_file(filepath, citizens, virus_list, country_str->name) == 0 ){
+                                if ( read_file(filepath, citizens, virus_list) == 0 ){
                                     printf("Successful reading of file %s!\n", dfiles->d_name);
                                 } else {
                                     perror("ERROR: Unsuccessful Reading!");
