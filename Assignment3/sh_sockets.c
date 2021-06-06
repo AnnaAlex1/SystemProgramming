@@ -130,13 +130,13 @@ char* get_message(int fd, int socketBufferSize){
 
 
     //get size of message
-    res = read(fd, message, socketBufferSize);
+    res = recv(fd, message, socketBufferSize, MSG_WAITALL);
     if ( res < 0 ){
         perror("ERROR: in reading from Socket (size of message)");
         return NULL;
     }
     int total_message = atoi(message);
-    //printf("Size of message to receive: %d\n", total_message);
+    printf("Size of message to receive: %d\n", total_message);
 
 
     //get number of rounds to perform
@@ -146,7 +146,7 @@ char* get_message(int fd, int socketBufferSize){
     for (int i = 0; i < rounds; i++){
     
         //read i-th part of message
-        res = read( fd, message, socketBufferSize );
+        res = recv( fd, message, socketBufferSize, MSG_WAITALL);
         if ( res < 0 ){
             perror("ERROR: in reading from Socket");
             return NULL;

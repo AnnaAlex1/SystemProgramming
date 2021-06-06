@@ -84,8 +84,8 @@ int main( int argc, char *argv[]){
 
 
     //SOCKET
-    int port = 49155;
-    //int port = 7777;
+    //int port = 49155;
+    int port = 7777;
 
 
     //Δημιουργία monitor processes
@@ -189,7 +189,7 @@ int main( int argc, char *argv[]){
     }
 
 
-        
+    //sleep(3); 
     //ΛΗΨΗ ΜΗΝΥΜΑΤΟΣ ΕΤΟΙΜΟΤΗΤΑΣ
 
    /* char *ready = NULL;
