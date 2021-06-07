@@ -35,9 +35,7 @@ extern int sizeofbloom;
 extern int signal_num;
 
 
-//int store_records(Hashtable citizens, struct List** virus_list, CountryHash countries);
 void monitor_body(int sock, Hashtable citizens, struct List **viruslist, CountryHash countries);
-int read_new_files(Hashtable citizens, struct List** virus_list, CountryHash countries);
 
 
 
@@ -88,20 +86,14 @@ int main(int argc, char* argv[]){
 
 
     //ΑΡΧΙΚΟΠΟΙΗΣΗ: Αποθήκευση εγγραφών από νήματα
-    if ( thread_store_records(numThreads, cyclicBufferSize, argc-11, citizens, &virus_list, countries) == -1 ){
+    // THREADS STRUCT
+    pthread_t *my_thr;
+    my_thr = malloc( sizeof(pthread_t) * numThreads);
+
+    if ( thread_store_records(my_thr, numThreads, cyclicBufferSize, argc-11, citizens, &virus_list, countries) == -1 ){
         printf("ERROR in storing records");
         exit(1);
     }
-
-    /*if ( store_records(citizens, &virus_list, countries) == -1 ){
-        printf("ERROR in storing records");
-        exit(1);
-    }*/
-
-
-
-
-
 
 
 
@@ -172,7 +164,6 @@ int main(int argc, char* argv[]){
                         herror("gethostbyaddr"); exit(1);}
                     printf("Accepted connection from %s\n", rem->h_name);
 
-    printf("About to send bf from %d\n", getpid());
     if (send_bloomfilters(newsock, virus_list, socketBufferSize) == -1){
         perror("ERROR in sending bloomfilters");
         exit(1);
@@ -238,9 +229,6 @@ int main(int argc, char* argv[]){
     monitor_body(newsock, citizens, &virus_list, countries);
 
 
-    close(newsock);
-    close(sock);
-
 
     //////////////////////////////////////////////////
 
@@ -253,11 +241,19 @@ int main(int argc, char* argv[]){
 
     //RELEASE OF MEMORY
     printf("\nRELEASE OF MEMORY.\n");
+
+    thread_finish(numThreads, cyclicBufferSize, my_thr);
+    free(my_thr);
+
+    close(newsock);
+    close(sock);
+
     hashtable_destroyCoun(countries);
     hashtable_destroy(citizens);
     deletelist(&virus_list);
     free(citizens);
     free(countries);
+    
 
 
     printf("Monitor pid:%d exiting...\n", getpid());
@@ -265,109 +261,6 @@ int main(int argc, char* argv[]){
     return 0;
 }
 
-
-
-
-
-
-/*
-int store_records(Hashtable citizens, struct List** virus_list, CountryHash countries){
-
-    char* foldername;
-    DIR *subdr;
-    struct dirent *dfiles;
-
-    char *filepath;
-
-
-
-    struct Country* country_str;
-
-    if (countries == NULL){
-        printf("Hashtable is Empty!\n");
-        return -1;
-    }
-
-    struct BucketCoun* current_buc;
-
-    //SEARCH HASHTABLE OF COUNTRIES
-    for (int i = 0; i < TABLE_SIZE; i++){
-
-        current_buc = countries[i].bucket;
-
-        while ( current_buc != NULL){
-
-            for (int j = 0; j < BUC_SIZE; j++){ 
-
-                if (current_buc->element[j].name != NULL){ //for every country
-
-                    country_str = &(current_buc->element[j]);
-
-                    //Find country's folder name
-                    foldername = malloc( sizeof(char) * ( strlen("inputfolder") + strlen(country_str->name) + 2 ));
-
-                    strcpy(foldername, "inputfolder");
-                    strcat(foldername, "/");
-                    strcat(foldername, country_str->name);
-
-
-                    if ( (subdr = opendir(foldername)) == NULL ) { perror("Sub-Directory cannot open!"); exit(1); }
-   
-                    country_str->num_of_files_read = 0;
-
-                    //FOR EVERY FILE in the directory
-                    while ( (dfiles = readdir(subdr)) != NULL ){
-
-                        if ( (strcmp(dfiles->d_name,".") != 0) && (strcmp(dfiles->d_name,"..") != 0) ){
-
-                            
-                            //build path
-                            filepath = malloc(sizeof(char) * ( strlen(dfiles->d_name) + strlen(foldername) + 2 ) );         //+1 for the character '/'
-                            strcpy(filepath, foldername);
-                            strcat(filepath, "/");
-                            strcat(filepath, dfiles->d_name);
-
-                            //printf("file to open: %s\n", filepath);
-
-                            if ( read_file(filepath, citizens, virus_list) == -1 ){
-                                perror("ERROR: Unsuccessful Reading!");
-                                return -1;
-                            }
-
-
-
-                            free(filepath);
-
-                            country_str->num_of_files_read++;
-                            
-
-
-                        }
-
-
-                    }
-
-
-                    closedir(subdr);
-                    free(foldername);
-
-                }
-            }
-            
-            current_buc = current_buc->next_buc;  
-
-        }
-    
-           
-    } 
-
-
-    return 0;
-
-}
-
-
-*/
 
 
 
@@ -492,31 +385,30 @@ void monitor_body(int sock, Hashtable citizens, struct List **viruslist, Country
 
                 free(citizenID);
 
-            }
-
-
-            signal_num = 0;
-
-        } else if ( signal_num == 2){      //GOT A SIGUSR1 SIGNAL
-
+            } else if ( strcmp(command, "addVaccinationRecords") == 0 ) {
             
-            //ΔΙΑΒΑΣΕ ΝΕΑ ΑΡΧΕΙΑ
-            //Γέμισε τις δομές
+                //ΔΙΑΒΑΣΕ ΝΕΑ ΑΡΧΕΙΑ
+                //Γέμισε τις δομές
 
-            if ( read_new_files(citizens, viruslist, countries) == -1){
-                printf("ERROR in Reading new Files\n");
+                if ( fill_buffer_new_files(citizens, viruslist, countries, socketBufferSize) == -1){
+                    printf("ERROR in Reading new Files\n");
+                }
+
+                printf("Finished with reading new Files!\n");
+
+                //Αποστολή των Bloomfilter (για κάθε ίωση)
+                if (send_bloomfilters(sock, *viruslist, socketBufferSize) == -1){
+                    perror("ERROR in sending bloomfilters");
+                    exit(1);
+                }
+
+
+
             }
 
-            printf("Finished with reading new Files!\n");
 
-            //Αποστολή των Bloomfilter (για κάθε ίωση)
-            if (send_bloomfilters(sock, *viruslist, socketBufferSize) == -1){
-                perror("ERROR in sending bloomfilters");
-                exit(1);
-            }
-
-           
             signal_num = 0;
+
 
         } else if ( signal_num == 3 ){      //GOT A SIGINT/SIGQUIT SIGNAL
 
@@ -541,6 +433,7 @@ void monitor_body(int sock, Hashtable citizens, struct List **viruslist, Country
             
             fclose(logfile);
             free(filename);
+            
             signal_num = 0; //reset signal number
             
             //return;
@@ -557,117 +450,3 @@ void monitor_body(int sock, Hashtable citizens, struct List **viruslist, Country
 
 }
 
-
-
-
-int read_new_files(Hashtable citizens, struct List** virus_list, CountryHash countries){
-
-    char* foldername;
-    DIR *subdr;
-    struct dirent *dfiles;
-
-    int num_of_files = 0;
-    int file_number;
-    char *filepath;
-
-
-
-    struct Country* country_str;
-
-    if (countries == NULL){
-        printf("Hashtable is Empty!\n");
-        return -1;
-    }
-
-    struct BucketCoun* current_buc;
-
-    //SEARCH HASHTABLE OF COUNTRIES
-    for (int i = 0; i < TABLE_SIZE; i++)
-    {   
-        current_buc = countries[i].bucket;
-
-        while ( current_buc != NULL){
-
-            for (int j = 0; j < BUC_SIZE; j++){ 
-
-                if (current_buc->element[j].name != NULL){ //for every country
-
-                    country_str = &(current_buc->element[j]);
-
-                    //Find country's folder name
-                    foldername = malloc( sizeof(char) * ( strlen("inputfolder") + strlen(country_str->name) + 2 ));
-
-                    strcpy(foldername, "inputfolder");
-                    strcat(foldername, "/");
-                    strcat(foldername, country_str->name);
-
-
-                    if ( (subdr = opendir(foldername)) == NULL ) { perror("Sub-Directory cannot open!"); exit(1); }
-   
-                    //get previous number of files in country
-                    num_of_files = country_str->num_of_files_read;
-
-                    //FOR EVERY FILE in the directory
-                    while ( (dfiles = readdir(subdr)) != NULL ){
-
-                        if ( (strcmp(dfiles->d_name,".") != 0) && (strcmp(dfiles->d_name,"..") != 0) ){
-
-                            
-                            file_number = atoi( strchr(dfiles->d_name, '-') + 1);
-
-
-                            //if filenumber greater than initial number of files in country
-                            // => it's a new file
-                            if ( file_number >= country_str->num_of_files_read){
-
-                                //THIS IS A NEW FILE
-
-
-                                //build path
-                                filepath = malloc(sizeof(char) * ( strlen(dfiles->d_name) + strlen(foldername) + 2 ) );         //+1 for the character '/'
-                                strcpy(filepath, foldername);
-                                strcat(filepath, "/");
-                                strcat(filepath, dfiles->d_name);
-
-                                //printf("file to open: %s\n", filepath);
-
-                                if ( read_file(filepath, citizens, virus_list) == 0 ){
-                                    printf("Successful reading of file %s!\n", dfiles->d_name);
-                                } else {
-                                    perror("ERROR: Unsuccessful Reading!");
-                                    return -1;
-                                }
-
-
-
-                                free(filepath);
-
-                                num_of_files++;
-                            }
-
-
-                        }
-
-
-                    }
-
-                    country_str->num_of_files_read = num_of_files;
-
-                    closedir(subdr);
-                    free(foldername);
-
-                }
-            }
-            
-            current_buc = current_buc->next_buc;  
-
-        }
-    
-           
-    } 
-
-
-    return 0;
-
-
-}

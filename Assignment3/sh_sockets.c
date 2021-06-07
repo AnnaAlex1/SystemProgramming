@@ -29,6 +29,9 @@ extern struct MonitorStruct *commun;
 struct Arguments arg;
 extern int sizeofbloom;
 
+
+
+
 void create_child(int i){
     
 
@@ -136,7 +139,7 @@ char* get_message(int fd, int socketBufferSize){
         return NULL;
     }
     int total_message = atoi(message);
-    printf("Size of message to receive: %d\n", total_message);
+    //printf("Size of message to receive: %d\n", total_message);
 
 
     //get number of rounds to perform
@@ -185,77 +188,8 @@ char* get_message(int fd, int socketBufferSize){
     return cur_mes;
 }
 
-/*
-
-char* get_message(int fd, int socketBufferSize){
 
 
-    char *message;
-    message = malloc( socketBufferSize);
-    
-    int res;
-    int remainder_len;
-
-
-    //get size of message
-    res = read(fd, message, socketBufferSize);
-    if ( res < 0 ){
-        perror("ERROR: in reading from Socket (size of message)");
-        return NULL;
-    }
-    int total_message = atoi(message);
-    //printf("Size of message to receive: %d\n", total_message);
-
-    char *cur_mes = malloc( total_message );
-
-    //get number of rounds to perform
-    int rounds = ceil( (double)total_message / (double)socketBufferSize );
-
-
-    for (int i = 0; i < rounds; i++){
-    
-        //read i-th part of message
-        res = read( fd, message, socketBufferSize );
-        if ( res < 0 ){
-            perror("ERROR: in reading from Socket");
-            return NULL;
-        }
-
-        if ( i == rounds-1 ){       //for the last round
-            
-            
-            remainder_len = total_message % socketBufferSize;
-            if (remainder_len == 0){
-                remainder_len = socketBufferSize;
-            }
-            
-            //allocate more space for new info
-            //cur_mes = realloc(cur_mes, i*socketBufferSize + remainder_len );
-            
-            memcpy(cur_mes + i*socketBufferSize, message, remainder_len);
-
-        } else{
-            
-            //if ( i != 0 ){ //not first round
-             //   cur_mes = realloc(cur_mes, (i+1)*socketBufferSize);
-            //}
-
-            memcpy(cur_mes + i*socketBufferSize, message, socketBufferSize);
-
-        }
-
-        
-
-    }
-
-
-    free(message);
-
-    return cur_mes;
-}
-
-
-*/
 
 
 
@@ -335,7 +269,6 @@ int send_bloomfilters(int fd, struct List* virus_list, int socketBufferSize){
     while( virus_temp != NULL){
 
         //send name of virus
-        printf("To SEND: %s         from %d with socketbuffersize of %d\n", virus_temp->name, getpid(), socketBufferSize);
         send_message(fd, virus_temp->name, strlen(virus_temp->name)+1, socketBufferSize);       
 
         //send bloomfilter for virus
@@ -380,14 +313,12 @@ int get_bloomfilters(struct MonitorStruct *commun, int socketBufferSize, int num
         pos_in_commun = i;
     }
 
-    printf("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW  pid: %d   sock: %d    port: %d", commun[pos_in_commun].pid, commun[pos_in_commun].sock, commun[pos_in_commun].port);
-    printf("   SocketBufferSize: %d  %d\n", socketBufferSize, arg.socketBufferSize);
-    
+
     while( 1 ){
 
         //get name of virus
         virusname = get_message(commun[pos_in_commun].sock, socketBufferSize);
-        printf("Virusname: %s\n", virusname);
+        //printf("Virusname: %s\n", virusname);
 
         if ( virusname == NULL ){
             perror("ERROR in getting name of virus");
@@ -427,47 +358,5 @@ int get_bloomfilters(struct MonitorStruct *commun, int socketBufferSize, int num
     free(bloomf);
     return 0;
    
-
-}
-
-
-
-
-char* get_mes_client(int sock, struct sockaddr_in server, struct sockaddr *serverptr ){
-
-    char *mes;
-
-    // START A CONNECTION
-    if ( connect(sock, serverptr, sizeof(server)) < 0 ){
-        perror("ERROR: in connection");
-        exit(1);
-    }
-
-    mes = get_message(sock, arg.socketBufferSize);
-
-    close(sock);
-
-    return mes;
-
-}
-
-
-void send_mes_server(int sock, struct sockaddr *clientptr, socklen_t clientlen, const void* message, int size_of_message, int socketBufferSize){
-
-    int newsock;
-
-    // Accepting a connection
-    if ( (newsock = accept(sock, clientptr, &clientlen)) < 0 ){
-        perror("ERROR: during accepting of connection");
-        exit(1);
-    }
-
-    printf("Accepted Connection\n");
-    close(sock); 
-    
-    send_message(newsock, message, size_of_message, socketBufferSize);
-
-    
-    close(newsock);
 
 }

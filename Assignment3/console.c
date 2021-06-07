@@ -239,9 +239,12 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, int socke
                 
                 if ( commun[i].pid == cs->pid ){    //found monitor that handled countryfrom
 
-                    //send SIGUSR1 signal
-                    kill(commun[i].pid, SIGUSR1);
 
+                    kill(commun[i].pid, SIGUSR2);   //SEND SIGNAL FOR READING
+
+                    //send command
+                    send_message(commun[i].sock, "addVaccinationRecords", strlen("addVaccinationRecords")+1, socketBufferSize);
+                    
                     //wait for new bloomfilter
                     if ( get_bloomfilters(commun, socketBufferSize, arg.numMonitors, i, 1) == -1){
                         perror("ERROR in replacing bloomfilter");
