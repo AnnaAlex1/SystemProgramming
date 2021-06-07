@@ -331,7 +331,8 @@ void distribute_subdirs(char * input_dir, struct MonitorStruct *commun, CountryM
         if ( (strcmp(dsub_dir->d_name,".") != 0) && (strcmp(dsub_dir->d_name,"..") != 0) ){
             
             //put country in hashtable
-            hashtable_addCounMain(countries, dsub_dir->d_name, commun[i].pid);
+            hashtable_addCounMain(countries, dsub_dir->d_name, i);
+            printf("Position to get country %s: %d\n", dsub_dir->d_name, i);
 
             //printf("    Opening Directory: %s\n", dsub_dir->d_name);
 

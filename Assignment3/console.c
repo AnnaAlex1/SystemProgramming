@@ -233,29 +233,16 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, int socke
             }
 
 
-            for (int i = 0; i < arg.numMonitors; i++){
-                
-                if ( commun[i].pid == cs->pid ){    //found monitor that handled countryfrom
+            kill(commun[cs->pos_i].pid, SIGUSR2);   //SEND SIGNAL FOR READING
 
-
-                    kill(commun[i].pid, SIGUSR2);   //SEND SIGNAL FOR READING
-
-                    //send command
-                    send_message(commun[i].sock, "addVaccinationRecords", strlen("addVaccinationRecords")+1, socketBufferSize);
-                    
-                    //wait for new bloomfilter
-                    if ( get_bloomfilters(commun, socketBufferSize, arg.numMonitors, i, 1) == -1){
-                        perror("ERROR in replacing bloomfilter");
-                        exit(1);
-                    }
-
-                    break;
-                }
-
-
-            }
-
+            //send command
+            send_message(commun[cs->pos_i].sock, "addVaccinationRecords", strlen("addVaccinationRecords")+1, socketBufferSize);
             
+            //wait for new bloomfilter
+            if ( get_bloomfilters(commun, socketBufferSize, arg.numMonitors, cs->pos_i, 1) == -1){
+                perror("ERROR in replacing bloomfilter");
+                exit(1);
+            }
 
 
 
@@ -353,86 +340,77 @@ void travel_Req(struct MonitorStruct *commun, CountryMainHash countries, int soc
         return;
     }
     
-    for (int i = 0; i < arg.numMonitors; i++){
 
+    //find virus struct
+    struct VirusesListMain *vir_elem;
+    vir_elem = getelemfromVirMain(commun[cs->pos_i].viruses, virusName);
+
+    if ( vir_elem == NULL ){
+        //No such virus in this Monitor
+        printf("REQUEST REJECTED - YOU ARE NOT VACCINATED (NO VIRUS)\n");
+        approved = 0;
+        (*rejected_req)++;                
+    } else 
+
+    //check bloomfilter
+
+    if ( search_Bloom(*(vir_elem->vacc_bloom), NUM_OF_HASHES, citizenID) == 0){//NOT IN THE STRUCTURE
         
-        if ( commun[i].pid == cs->pid ){    //found monitor that handled countryfrom
+        printf("REQUEST REJECTED - YOU ARE NOT VACCINATED (BLOOM)\n");
+        approved = 0;
+        (*rejected_req)++;
+        
+    } else {              //MAYBE IN THE STRUCTURE
 
-            //find virus struct
-            struct VirusesListMain *vir_elem;
-            vir_elem = getelemfromVirMain(commun[i].viruses, virusName);
+        //SEND SIGNAL FOR READING
+        kill(commun[cs->pos_i].pid, SIGUSR2);
 
-            if ( vir_elem == NULL ){
-                //No such virus in this Monitor
-                printf("REQUEST REJECTED - YOU ARE NOT VACCINATED (NO VIRUS)\n");
-                approved = 0;
-                (*rejected_req)++;                
-            } else 
-
-            //check bloomfilter
-
-            if ( search_Bloom(*(vir_elem->vacc_bloom), NUM_OF_HASHES, citizenID) == 0){//NOT IN THE STRUCTURE
-                
-                printf("REQUEST REJECTED - YOU ARE NOT VACCINATED (BLOOM)\n");
-                approved = 0;
-                (*rejected_req)++;
-                
-            } else {              //MAYBE IN THE STRUCTURE
-
-                //SEND SIGNAL FOR READING
-                kill(commun[i].pid, SIGUSR2);
-
-                //SEND CHOSEN COMMAND
-                send_message(commun[i].sock, "travelRequest", strlen("travelRequest")+1, socketBufferSize);
+        //SEND CHOSEN COMMAND
+        send_message(commun[cs->pos_i].sock, "travelRequest", strlen("travelRequest")+1, socketBufferSize);
 
 
-                //SEND NECESSARY INFO
-                //send name of virus
-                send_message(commun[i].sock, virusName, strlen(virusName)+1, socketBufferSize);
-                //send citizenID
-                send_message(commun[i].sock, citizenID, strlen(citizenID)+1, socketBufferSize);
-                
+        //SEND NECESSARY INFO
+        //send name of virus
+        send_message(commun[cs->pos_i].sock, virusName, strlen(virusName)+1, socketBufferSize);
+        //send citizenID
+        send_message(commun[cs->pos_i].sock, citizenID, strlen(citizenID)+1, socketBufferSize);
+        
 
-                //GET RESULT
-                char *result = get_message(commun[i].sock, socketBufferSize);
+        //GET RESULT
+        char *result = get_message(commun[cs->pos_i].sock, socketBufferSize);
 
-                if ( strcmp(result, "YES") == 0){
-                    
-                    //GET DATE
-                    char *vaccin_date = get_message(commun[i].sock, socketBufferSize);
+        if ( strcmp(result, "YES") == 0){
+            
+            //GET DATE
+            char *vaccin_date = get_message(commun[cs->pos_i].sock, socketBufferSize);
 
-                    int all = in_prev_six(vaccin_date, trav_date);
-                    
-                    if ( all == -1 ){   //wrong info
-                        printf("Wrong Date!\n");
-                    } else if ( all == 1 ){      //vaccinated in previous 6 months
-                            printf("REQUEST ACCEPTED – HAPPY TRAVELS\n");
-                            approved = 1;
-                            (*accepted_req)++;
-                    } else {
-                            printf("REQUEST REJECTED – YOU WILL NEED ANOTHER VACCINATION BEFORE TRAVEL DATE\n");
-                            approved = 0;
-                            (*rejected_req)++;
-                    }
-
-                    free(vaccin_date);
-
-                } else if ( strcmp(result, "NO") == 0){
-                    
-                    printf("REQUEST REJECTED - YOU ARE NOT VACCINATED (SKIPLIST)\n");
+            int all = in_prev_six(vaccin_date, trav_date);
+            
+            if ( all == -1 ){   //wrong info
+                printf("Wrong Date!\n");
+            } else if ( all == 1 ){      //vaccinated in previous 6 months
+                    printf("REQUEST ACCEPTED – HAPPY TRAVELS\n");
+                    approved = 1;
+                    (*accepted_req)++;
+            } else {
+                    printf("REQUEST REJECTED – YOU WILL NEED ANOTHER VACCINATION BEFORE TRAVEL DATE\n");
                     approved = 0;
                     (*rejected_req)++;
-
-                }
-
-                free(result);
-
-
             }
 
-            break;
+            free(vaccin_date);
+
+        } else if ( strcmp(result, "NO") == 0){
+            
+            printf("REQUEST REJECTED - YOU ARE NOT VACCINATED (SKIPLIST)\n");
+            approved = 0;
+            (*rejected_req)++;
+
         }
-        
+
+        free(result);
+
+
 
     }
     
@@ -693,7 +671,7 @@ void reassign_countries(struct MonitorStruct *commun, CountryMainHash ht, int pr
                 if (current_buc->element[j].name != NULL){
 
 
-                    if ( current_buc->element[j].pid == prev_pid ){ //found a country that was previously assigned to this
+                    if ( current_buc->element[j].pos_i == com_pos ){ //found a country that was previously assigned to this
 
 
                         //Find country's folder name
@@ -706,8 +684,8 @@ void reassign_countries(struct MonitorStruct *commun, CountryMainHash ht, int pr
                         //send foldername
                         send_message(commun[com_pos].sock, foldername, strlen(foldername)+1, socketBufferSize);
 
-                        //change pid in country_struct
-                        current_buc->element[j].pid = commun[com_pos].pid;
+                        //change pos in country_struct
+                        current_buc->element[j].pos_i = com_pos;
                         
                         free(foldername);
                     }
