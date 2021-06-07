@@ -344,7 +344,7 @@ struct BucketCounMain* bucket_createCounMain(){
 
     for (int i = 0; i < BUC_SIZE; i++){
         new_Bucket->element[i].name = NULL;
-        new_Bucket->element[i].pid = -1;
+        new_Bucket->element[i].pos_i = -1;
     }
     
 
@@ -354,13 +354,13 @@ struct BucketCounMain* bucket_createCounMain(){
 
 
 
-void hashtable_addCounMain(CountryMainHash ht, char* coun_name, int pid){
+void hashtable_addCounMain(CountryMainHash ht, char* coun_name, int pos_i){
     
     struct CountryMain* new_coun;
     new_coun = malloc(sizeof(struct CountryMain));
     new_coun->name = malloc(sizeof(char) * (strlen(coun_name)+1));
     strcpy(new_coun->name, coun_name);
-    new_coun->pid = pid;
+    new_coun->pos_i = pos_i;
 
 
     int pos = hashfunction(coun_name);  //get row to be put
