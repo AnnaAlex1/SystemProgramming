@@ -260,7 +260,7 @@ int send_message(int fd, const void* message, int size_of_message, int socketBuf
 int send_bloomfilters(int fd, struct List* virus_list, int socketBufferSize){
 
     if (virus_list == NULL){
-        printf("No BloomFilters to be send\n");
+        send_message(fd, "DONE", strlen("DONE")+1, socketBufferSize);
         return -1;
     }
 
