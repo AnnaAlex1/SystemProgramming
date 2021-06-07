@@ -591,7 +591,7 @@ void printFileslist(struct CountryFiles* fileslist){
         return;
     }
 
-    printf("\nList of Files:\n");
+    printf("\nList of Folders:\n");
 
     while(fileslist != NULL){
         printf("%s  ", fileslist->filename);

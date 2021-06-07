@@ -84,8 +84,7 @@ int main( int argc, char *argv[]){
 
 
     //SOCKET
-    //int port = 49155;
-    int port = 7777;
+    int port = 49155;
 
 
     //Δημιουργία monitor processes
@@ -121,27 +120,20 @@ int main( int argc, char *argv[]){
     char hostname[HOST_NAME_MAX + 1];
     gethostname(hostname, HOST_NAME_MAX + 1);
 
-    printf("HOSTNAME: %s\n", hostname);
+    //printf("HOSTNAME: %s\n", hostname);
 
 
 
     if ( (rem = gethostbyname(hostname)) == NULL ){
-        herror("ERROR: in getting host by name"); exit(1);
+        herror("ERROR: in getting host by name");
         exit(1);
     }
 
 
     // find IP
-    char *IPstr = inet_ntoa(*((struct in_addr*) rem->h_addr_list[0]));
+    //char *IPstr = inet_ntoa(*((struct in_addr*) rem->h_addr_list[0]));
+    //printf("IP: %s\n", IPstr);
 
-    printf("IP: %s\n", IPstr);
-
-
-
-
-
-    //struct sockaddr_in server;
-    //struct sockaddr *serverptr = (struct sockaddr*)&server;
 
 
 
@@ -152,82 +144,28 @@ int main( int argc, char *argv[]){
             perror("ERROR: in creating a socket (client)");
             exit(1);
         }
-        printf("PARENT: Creation of Socket: %d\n", commun[i].sock);
 
         commun[i].server.sin_family = AF_INET;
         memcpy(&(commun[i].server.sin_addr), rem->h_addr, rem->h_length);
         commun[i].server.sin_port = htons(commun[i].port);
-        printf("PARENT: Port number = %d\n", commun[i].port);
 
 
     }
+
+
+
+    // START THE CONNECTIONS
+    for (int i=0; i<arg.numMonitors; i++){      //  for every monitorServer
+        
+        do { } while ( connect(commun[i].sock, commun[i].serverptr, sizeof(commun[i].server)) < 0 );
+
+
+    }
+
+
 
 
     //ΑΝΑΜΟΝΗ ΓΙΑ BLOOMFILTERS
-
-    for (int i=0; i<arg.numMonitors; i++){      //  for every monitorServer
-
-        // START A CONNECTION
-        do { } while ( connect(commun[i].sock, commun[i].serverptr, sizeof(commun[i].server)) < 0 );
-
-        /*if ( connect(commun[i].sock, commun[i].serverptr, sizeof(commun[i].server)) < 0 ){
-            perror("ERROR: in connection");
-            exit(1);
-        }*/
-        printf(" -------------------  A Connection is made, sock: %d\n", commun[i].sock);
-
-
-        /*if (get_bloomfilters(commun, arg.socketBufferSize, arg.numMonitors, commun[i].sock, 0) == -1){
-            perror("ERROR in getting bloomfilters");
-            exit(1);
-        }*/
-        
-
-
-        //close(commun[i].sock);
-
-    }
-
-
-    //sleep(3); 
-    //ΛΗΨΗ ΜΗΝΥΜΑΤΟΣ ΕΤΟΙΜΟΤΗΤΑΣ
-
-   /* char *ready = NULL;
-
-
-    for (int i=0; i<arg.numMonitors; i++){      //  for every monitorServer
-
-        // START A CONNECTION
-        //do { } while (connect(commun[i].sock, serverptr, sizeof(server)) < 0);
-        
-        //if ( connect(commun[i].sock, serverptr, sizeof(server)) < 0 ){
-        //    perror("ERROR: in connection");
-        //    exit(1);
-        //}
-
-
-        ready = get_message(commun[i].sock, arg.socketBufferSize);
-        if ( strcmp(ready, "READY") != 0 ){
-            printf("Something Went Wrong!\n");
-            exit(1);
-        } else {
-            printf("PARENT: Monitor %d is ready!\n", commun[i].pid);
-        }
-        
-        free(ready);
-        
-
-        //close(commun[i].sock);
-
-    }
-*/
-
-///////////////////////////////////////
-
-
-
-
-    
 
     //για select:
     fd_set ready_set;
@@ -322,7 +260,7 @@ int main( int argc, char *argv[]){
     
 
 
-
+    ////////////////////////////////////////////////
 
     // SIGNAL HANDLING
     static struct sigaction sa1;        //SIGINT  
@@ -347,6 +285,10 @@ int main( int argc, char *argv[]){
     //CONSOLE
     console(commun, countries, arg.socketBufferSize);
 
+
+    //////////////////////////////////
+
+    //RELEASE OF MEMORY
 
     hashtable_destroyCounMain(countries);
     free(countries);
@@ -373,7 +315,6 @@ void distribute_subdirs(char * input_dir, struct MonitorStruct *commun, CountryM
     //READ FILES
     DIR *maindr;
     struct dirent *dsub_dir;
-    //char *path;
 
 
     //open directory input_dir
@@ -385,7 +326,6 @@ void distribute_subdirs(char * input_dir, struct MonitorStruct *commun, CountryM
     while ( (dsub_dir = readdir(maindr)) != NULL ){
 
         
-
         //printf("%s\n", dsub_dir->d_name);
 
         if ( (strcmp(dsub_dir->d_name,".") != 0) && (strcmp(dsub_dir->d_name,"..") != 0) ){
@@ -395,19 +335,12 @@ void distribute_subdirs(char * input_dir, struct MonitorStruct *commun, CountryM
 
             //printf("    Opening Directory: %s\n", dsub_dir->d_name);
 
-            /*path = malloc(sizeof(char) * ( strlen(dsub_dir->d_name) + strlen(input_dir) + 2 ) );
-            strcpy(path, input_dir);
-            strcat(path, "/");
-            strcat(path, dsub_dir->d_name);*/
-
-            //printf("File descriptor: fd[%d]=%d, subdirectory: %s\n", i, fd[i], path);
-            //send_message(commun[i].sock, path, strlen(path)+1, arg.socketBufferSize);
+            // add countries to monitorServer[i]'s country list
             addinFilesList( &(commun[i].list_of_countries), dsub_dir->d_name);
             commun[i].numOfCountries++;
 
             i = (i + 1) % arg.numMonitors;
 
-            //free(path);
         }
 
     }

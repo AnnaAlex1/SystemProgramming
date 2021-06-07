@@ -56,12 +56,12 @@ int main(int argc, char* argv[]){
     sizeofbloom = atoi(argv[10]);
 
     
-    printf("\nMONITOR ARGUMENTS:\n");
+    /*printf("\nMONITOR ARGUMENTS:\n");
     printf("Port: %d\n", port);
     printf("Number of Threads: %d\n", numThreads);
     printf("Socket Buffersize: %d\n", socketBufferSize);
     printf("CyclicBuffersize: %d\n", cyclicBufferSize);
-    printf("Sizeofbloom: %d\n", sizeofbloom);
+    printf("Sizeofbloom: %d\n", sizeofbloom);*/
     
 
     
@@ -78,7 +78,7 @@ int main(int argc, char* argv[]){
     CountryHash countries;
     countries = hashtable_createCoun();
 
-    for (int i = 11; i < argc; i++){
+    for (int i = 11; i < argc; i++){        //getting countries from arguments
         hashtable_addCoun(countries, argv[i]);
     }
     
@@ -87,7 +87,7 @@ int main(int argc, char* argv[]){
 
     //ΑΡΧΙΚΟΠΟΙΗΣΗ: Αποθήκευση εγγραφών από νήματα
     // THREADS STRUCT
-    pthread_t *my_thr;
+    pthread_t *my_thr;      //array of threads
     my_thr = malloc( sizeof(pthread_t) * numThreads);
 
     if ( thread_store_records(my_thr, numThreads, cyclicBufferSize, argc-11, citizens, &virus_list, countries) == -1 ){
@@ -131,7 +131,6 @@ int main(int argc, char* argv[]){
         exit(1);
     }
 
-    printf("Before listening\n");
     // Listening for connections
     if ( listen(sock, 1) < 0 ){
         perror("ERROR: during listening");
@@ -140,61 +139,25 @@ int main(int argc, char* argv[]){
     printf("Listening for connections to port %d from monitor %d\n", port, getpid());
 
 
-
-
-
-
-
-
-    //ΑΠΟΣΤΟΛΗ ΤΩΝ Bloomfilter (για κάθε ίωση)
-
     // Accepting a connection
-    printf("Ready To Accept, %d\n", getpid());
     clientlen = sizeof(client);
     if ( (newsock = accept(sock, clientptr, &clientlen)) < 0 ){
         perror("ERROR: during accepting of connection");
         exit(1);
     }
 
-    printf("+++++++++++++++++++++++Accepted Connection from %d\n", getpid());
+    printf("MonitorServer %d accepted Connection\n", getpid());
 
-                    struct hostent *rem;
-                    /* Find client's address */
-                    if ((rem = gethostbyaddr((char *) &client.sin_addr.s_addr, sizeof(client.sin_addr.s_addr), client.sin_family)) == NULL) {
-                        herror("gethostbyaddr"); exit(1);}
-                    printf("Accepted connection from %s\n", rem->h_name);
 
+    //ΑΠΟΣΤΟΛΗ ΤΩΝ Bloomfilter (για κάθε ίωση)
     if (send_bloomfilters(newsock, virus_list, socketBufferSize) == -1){
         perror("ERROR in sending bloomfilters");
         exit(1);
     }
         
-    
-    //close(newsock);
-
-    //////////////////////////////////////////////////////////
 
     //ΑΠΟΣΤΟΛΗ ΜΗΝΥΜΑΤΟΣ ΕΤΟΙΜΟΤΗΤΑΣ ΓΙΑ ΑΙΤΗΜΑΤΑ
-
-    // Accepting a connection
-    /*if ( (newsock = accept(sock, clientptr, &clientlen)) < 0 ){
-        perror("ERROR: during accepting of connection");
-        exit(1);
-    }
-
-    printf("Accepted Connection\n");*/
-    
     send_message(newsock, "READY", strlen("READY")+1, socketBufferSize);
-
-    //close(newsock);
-
-
-
-
-    printf("Monitor %d reached this spot!\n", getpid());
-
-    //close(sock); 
-
 
 
 
@@ -254,8 +217,6 @@ int main(int argc, char* argv[]){
     free(citizens);
     free(countries);
     
-
-
     printf("Monitor pid:%d exiting...\n", getpid());
 
     return 0;
@@ -433,10 +394,10 @@ void monitor_body(int sock, Hashtable citizens, struct List **viruslist, Country
             
             fclose(logfile);
             free(filename);
-            
+
             signal_num = 0; //reset signal number
             
-            //return;
+            return;
 
 
         } 

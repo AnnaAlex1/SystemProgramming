@@ -10,7 +10,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <pthread.h>
 
+
+extern pthread_mutex_t work_mutex;
 
 
 int read_file(char* filename, Hashtable ht, struct List** virus_list){
@@ -77,8 +80,9 @@ int read_file(char* filename, Hashtable ht, struct List** virus_list){
         printf("date: %s\n", date);
         */        
 
+        pthread_mutex_lock(&work_mutex);
         insert_record(ht, virus_list, citizen, virus, done, date, false);
-        
+        pthread_mutex_unlock(&work_mutex);
     }
     
     fclose(cit_file);

@@ -8,14 +8,14 @@
 #include <netinet/in.h>
 
 struct MonitorStruct{
-    int sock;      //monitor's connection
+    int sock;      //monitorServer's connection
     int port;
-    int pid;    //monitor's process id
+    int pid;    //monitorServer's process id
     struct sockaddr_in server;
     struct sockaddr *serverptr;
     struct VirusesListMain *viruses;    //list of viruses+bf for this monitor
-    struct CountryFiles* list_of_countries;
-    int numOfCountries;
+    struct CountryFiles* list_of_countries; //list of countries for monitorServer[i] to handle
+    int numOfCountries;                         // the number of those countries
 };
 
 

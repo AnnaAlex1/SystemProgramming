@@ -73,7 +73,7 @@ void print_hashtableCounMain(CountryMainHash ht, FILE* stream);
 
 ////////////////////////////////////////
 
-struct CountryFiles{        //list to keep all files to be used for monitor
+struct CountryFiles{        //list to keep all folders to be used for monitor
 
     char *filename;
     struct CountryFiles *next;

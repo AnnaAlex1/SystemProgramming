@@ -104,9 +104,9 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, int socke
             
             signal_num = -1;        // to avoid creation of new child process
 
-            //SEND SIGKILL TO MONITORS
+            //SEND EXIT COMMAND TO MONITORS
             for (int i=0; i < arg.numMonitors; i++){
-                kill(commun[i].pid, SIGKILL);
+                kill(commun[i].pid, SIGINT);
             }
 
             //WAIT FOR ALL MONITORS TO TERMINATE
@@ -114,14 +114,12 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, int socke
                 waitpid(commun[i].pid, &status, 0);
             }
             
-
             
             //RELEASE SOURCES
 
             printf("\nFinished with Pipes\n");
             for (int i = 0; i < arg.numMonitors; i++) {
                 close(commun[i].sock);
-                //unlink(commun[i].fifoname_w);
                 deleteFileslist(&(commun[i].list_of_countries));
                 deleteVirMain(&(commun[i].viruses));
             }
@@ -339,9 +337,11 @@ void console( struct MonitorStruct *commun, CountryMainHash countries, int socke
 
 
 
+
+
 void travel_Req(struct MonitorStruct *commun, CountryMainHash countries, int socketBufferSize,
                 char *virusName, char *countryFrom, char *citizenID, char *trav_date, char* countryTo,
-                 int *rejected_req, int *accepted_req, struct RequestsList **req_list){
+                int *rejected_req, int *accepted_req, struct RequestsList **req_list){
 
     int approved = 0;
 

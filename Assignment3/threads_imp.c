@@ -12,9 +12,9 @@
 
 
 // MUTEXES
-static pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t sum_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t done_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t work_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t done_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 // CONDITION VARIABLES
@@ -30,7 +30,6 @@ int done = 0;   // indication that all of input was given to buffer queue
 
 void *thread_fun(void *argp){
 
-    //printf("------------------ Hello from thread %ld ---------------\n", pthread_self());
     struct thread_args targs = *(struct thread_args *)argp;
     
     
@@ -39,36 +38,28 @@ void *thread_fun(void *argp){
     while ( 1 ){
 
         // check if done
-        //printf("Checking if done with Jobs!\n");
         if ( done && job == NULL){
             break;
         }
 
-
-
         // get next job
-        //printf("Trying to get a Job\n");
         job = dequeue(jb, targs.cyclebuffersize);
 
         if ( job == NULL ){
-            printf("DONE!\n");
             break;
         }
 
-        //printf("Got a job!\n");
         pthread_cond_signal(&full_cond);
 
 
         // DO THE WORK FOR INPUT
-        pthread_mutex_lock(&sum_mutex);
         //printf("               Removing job %s to queue\n", job);
         if ( read_file(job, targs.citizens, targs.virus_list) == -1 ){
             perror("ERROR: Unsuccessful Reading!");
             exit(1);
         }
         free(job);
-        pthread_mutex_unlock(&sum_mutex);
-
+        
 
     }
 
@@ -147,7 +138,7 @@ void thread_finish(int numofthreads, int cyclebuffersize, pthread_t * my_thr){
 
 
     pthread_mutex_destroy(&done_mutex);
-    pthread_mutex_destroy(&sum_mutex);
+    pthread_mutex_destroy(&work_mutex);
     pthread_mutex_destroy(&queue_mutex);
     pthread_cond_destroy(&not_empty);
     pthread_cond_destroy(&full_cond);
@@ -219,13 +210,9 @@ int fill_buffer(int numofinput, int cyclicbuffersize, CountryHash countries){
 
                             
                             ///////////////////
-                            printf("Adding job: '%s' to queue\n", filepath);
+                            //printf("Adding job: '%s' to queue\n", filepath);
                             enqueue(jb, filepath, cyclicbuffersize);
 
-
-                            // not empty -> broadcast
-                            //printf("Broadcasting: Jobs in the Queue\n");
-                            //pthread_cond_broadcast(&not_empty);
                             pthread_cond_signal(&not_empty);
                             ///////////////////////
 
@@ -338,12 +325,9 @@ int fill_buffer_new_files(Hashtable citizens, struct List** virus_list, CountryH
                                 strcat(filepath, dfiles->d_name);
 
                                 ///////////////////
-                                printf("Adding job: '%s' to queue\n", filepath);
+                                //printf("Adding job: '%s' to queue\n", filepath);
                                 enqueue(jb, filepath, cyclicbuffersize);
 
-
-                                // not empty -> broadcast
-                                //printf("Broadcasting: Jobs in the Queue\n");
                                 //pthread_cond_broadcast(&not_empty);
                                 pthread_cond_signal(&not_empty);
 
@@ -509,16 +493,7 @@ char *dequeue( struct JobBuffer *b, int cyclebuffersize){
 
 void buffer_destroy(struct JobBuffer **jb, int cyclebuffersize){
 
-    /*for (int i = 0; i < cyclebuffersize; i++){
-        
-        free(((*jb)->array)[i]);
-
-    }*/
-
     free((*jb)->array);
-
     free(*jb);
     
-
-
 }
